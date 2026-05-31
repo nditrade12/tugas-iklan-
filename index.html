@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Powered By TugasCuan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* PARTIKEL BACKGROUND */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(52, 152, 219, 0.08);
+            border-radius: 50%;
+            animation: floatUp linear infinite;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* HEADER */
+        .header {
+            width: 100%;
+            background: #ffffff;
+            padding: 20px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid #e8ecf0;
+            position: relative;
+            z-index: 10;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: textGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes textGlow {
+            0%, 100% {
+                filter: brightness(1);
+            }
+            50% {
+                filter: brightness(1.3);
+            }
+        }
+
+        .header-subtitle {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-top: 4px;
+            letter-spacing: 2px;
+            animation: fadeIn 1s ease-out 0.3s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* CONTAINER UTAMA */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* CARD SPONSOR */
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 650px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 35px 40px;
+            border: 1px solid #eef1f5;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            gap: 25px;
+            animation: cardAppear 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both;
+        }
+
+        @keyframes cardAppear {
+            from {
+                transform: scale(0.8) translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2ecc71, #f39c12, #e74c3c, #3498db);
+            background-size: 300% 100%;
+            animation: gradientMove 4s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* EFEK SHIMMER CARD */
+        .card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.4) 50%,
+                transparent 70%
+            );
+            animation: shimmer 5s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        .card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.12), 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        /* BAGIAN ATAS CARD - SPONSOR */
+        .card-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-icon {
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, #f0f4f8, #e2e8f0);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.15);
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% {
+                box-shadow: 0 10px 25px rgba(52, 152, 219, 0.15);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 15px 35px rgba(52, 152, 219, 0.3);
+                transform: scale(1.08);
+            }
+        }
+
+        .card-icon svg {
+            width: 34px;
+            height: 34px;
+            fill: #3498db;
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .card-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #95a5a6;
+            font-weight: 500;
+            animation: fadeIn 0.6s ease-out 0.5s both;
+        }
+
+        .card-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.2;
+            animation: titleReveal 0.8s ease-out 0.4s both;
+        }
+
+        @keyframes titleReveal {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+                letter-spacing: -5px;
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                letter-spacing: 0;
+            }
+        }
+
+        .sponsor-badge {
+            display: inline-block;
+            background: #f8fafb;
+            border: 1px solid #e2e8f0;
+            border-radius: 50px;
+            padding: 8px 24px;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: badgePop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.7s both;
+        }
+
+        @keyframes badgePop {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .sponsor-badge:hover {
+            background: #f0f4f8;
+            border-color: #3498db;
+            color: #3498db;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        /* DIVIDER */
+        .divider {
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            position: relative;
+            z-index: 1;
+            animation: dividerExpand 0.8s ease-out 0.6s both;
+        }
+
+        @keyframes dividerExpand {
+            from {
+                width: 0%;
+                opacity: 0;
+            }
+            to {
+                width: 80%;
+                opacity: 1;
+            }
+        }
+
+        /* BAGIAN BAWAH CARD - CLAIM BONUS */
+        .bonus-section {
+            width: 100%;
+            background: #fafbfc;
+            border: 2px solid #eef1f5;
+            border-radius: 16px;
+            padding: 20px 25px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            position: relative;
+            z-index: 1;
+            animation: bonusSlideUp 0.7s ease-out 0.8s both;
+            overflow: hidden;
+        }
+
+        @keyframes bonusSlideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* EFEK GLOW BONUS */
+        .bonus-section::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 18px;
+            background: linear-gradient(45deg, #f39c12, #e74c3c, #f39c12, #e74c3c);
+            background-size: 400% 400%;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            animation: borderGlow 3s ease infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .bonus-section:hover::before {
+            opacity: 1;
+        }
+
+        .bonus-section:hover {
+            background: #fff;
+            border-color: transparent;
+            box-shadow: 0 12px 35px rgba(243, 156, 18, 0.2);
+            transform: translateY(-4px) scale(1.02);
+        }
+
+        /* EFEK RIPPLE SAAT KLIK */
+        .bonus-section:active {
+            transform: scale(0.97);
+            transition: transform 0.1s ease;
+        }
+
+        .bonus-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .bonus-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #fff5e6, #ffe0b2);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 18px rgba(243, 156, 18, 0.15);
+            flex-shrink: 0;
+            animation: bonusIconBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bonusIconBounce {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-8px) rotate(-5deg);
+            }
+            75% {
+                transform: translateY(-4px) rotate(5deg);
+            }
+        }
+
+        .bonus-icon svg {
+            width: 26px;
+            height: 26px;
+            fill: #f39c12;
+            animation: bonusIconSpark 1.5s ease-in-out infinite;
+        }
+
+        @keyframes bonusIconSpark {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        .bonus-text h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .bonus-text p {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            letter-spacing: 0.3px;
+        }
+
+        .bonus-arrow {
+            width: 38px;
+            height: 38px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0;
+            border: 1px solid #e8ecf0;
+            animation: arrowHint 2s ease-in-out infinite;
+        }
+
+        @keyframes arrowHint {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(5px);
+            }
+        }
+
+        .bonus-arrow svg {
+            width: 16px;
+            height: 16px;
+            fill: #f39c12;
+            transition: transform 0.4s ease;
+        }
+
+        .bonus-section:hover .bonus-arrow {
+            background: #f39c12;
+            border-color: #f39c12;
+            animation: arrowSpin 0.5s ease;
+        }
+
+        @keyframes arrowSpin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .bonus-section:hover .bonus-arrow svg {
+            fill: #ffffff;
+            transform: translateX(3px);
+        }
+
+        /* RIPPLE EFFECT */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(243, 156, 18, 0.3);
+            transform: scale(0);
+            animation: rippleEffect 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes rippleEffect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* NOTIFIKASI TOAST */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ffffff;
+            border-left: 4px solid #2ecc71;
+            border-radius: 12px;
+            padding: 16px 22px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: toastIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), toastOut 0.5s ease 2.5s forwards;
+            max-width: 380px;
+        }
+
+        @keyframes toastIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #e8f8f5, #d5f5e3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .toast-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: #2ecc71;
+        }
+
+        .toast-content h4 {
+            font-size: 0.95rem;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .toast-content p {
+            font-size: 0.78rem;
+            color: #7f8c8d;
+        }
+
+        /* FOOTER */
+        .footer {
+            width: 100%;
+            text-align: center;
+            padding: 15px 20px;
+            color: #95a5a6;
+            font-size: 0.78rem;
+            letter-spacing: 1px;
+            background: #ffffff;
+            border-top: 1px solid #eef1f5;
+            position: relative;
+            z-index: 10;
+            animation: fadeIn 1s ease-out 1s both;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 600px) {
+            .card {
+                padding: 28px 20px;
+                gap: 20px;
+                border-radius: 20px;
+            }
+
+            .card-title {
+                font-size: 1.7rem;
+            }
+
+            .header-text {
+                font-size: 1.2rem;
+            }
+
+            .card-icon {
+                width: 55px;
+                height: 55px;
+            }
+
+            .card-icon svg {
+                width: 28px;
+                height: 28px;
+            }
+
+            .bonus-section {
+                padding: 16px 18px;
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
+
+            .bonus-left {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+
+            .bonus-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+            }
+
+            .bonus-icon svg {
+                width: 22px;
+                height: 22px;
+            }
+
+            .bonus-text h3 {
+                font-size: 1.05rem;
+            }
+
+            .bonus-text p {
+                font-size: 0.75rem;
+            }
+
+            .toast {
+                left: 20px;
+                right: 20px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PARTIKEL BACKGROUND -->
+    <div class="particles" id="particles"></div>
+
+    <!-- TOAST NOTIFIKASI (hidden default) -->
+    <div class="toast" id="toast" style="display: none;">
+        <div class="toast-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+        </div>
+        <div class="toast-content">
+            <h4>Bonus Berhasil Diklaim! 🎉</h4>
+            <p>Tim kami akan menghubungi Anda segera.</p>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-text">Powered By TugasCuan</div>
+        <div class="header-subtitle">✦ Platform Solusi Digital ✦</div>
+    </header>
+
+    <!-- KONTEN UTAMA -->
+    <div class="main-wrapper">
+        
+        <!-- CARD UTAMA (Sponsor + Claim Bonus dalam 1 card) -->
+        <div class="card">
+            
+            <!-- BAGIAN ATAS - SPONSOR -->
+            <div class="card-top">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="card-label">Sponsor Utama</div>
+                <h2 class="card-title">The MitraTugasCuan</h2>
+                <div class="sponsor-badge">🤝 The MitraTugasCuan</div>
+            </div>
+
+            <!-- DIVIDER -->
+            <div class="divider"></div>
+
+            <!-- BAGIAN BAWAH - CLAIM BONUS -->
+            <div class="bonus-section" id="bonusSection">
+                <div class="bonus-left">
+                    <div class="bonus-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
+                        </svg>
+                    </div>
+                    <div class="bonus-text">
+                        <h3>Claim Bonus Anda</h3>
+                        <p>Klik di sini untuk klaim bonus eksklusif sekarang!</p>
+                    </div>
+                </div>
+                <div class="bonus-arrow">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        © 2026 Powered By TugasCuan • All Rights Reserved
+    </footer>
+
+    <script>
+        // PARTIKEL BACKGROUND
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 25;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                const size = Math.random() * 8 + 3;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = Math.random() * 15 + 10 + 's';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.background = Math.random() > 0.5 
+                    ? 'rgba(52, 152, 219, 0.1)' 
+                    : 'rgba(46, 204, 113, 0.06)';
+                
+                container.appendChild(particle);
+            }
+        }
+
+        createParticles();
+
+        // RIPPLE EFFECT SAAT KLIK
+        document.getElementById('bonusSection').addEventListener('click', function(e) {
+            // Hapus ripple lama jika ada
+            const oldRipple = this.querySelector('.ripple');
+            if (oldRipple) oldRipple.remove();
+
+            // Buat ripple baru
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+            
+            this.appendChild(ripple);
+
+            // Hapus ripple setelah animasi selesai
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+
+            // Tampilkan toast notifikasi
+            showToast();
+        });
+
+        // TOAST NOTIFIKASI
+        function showToast() {
+            const toast = document.getElementById('toast');
+            
+            // Reset animasi
+            toast.style.display = 'flex';
+            toast.style.animation = 'none';
+            toast.offsetHeight; // Trigger reflow
+            toast.style.animation = 'toastIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), toastOut 0.5s ease 2.5s forwards';
+            
+            // Sembunyikan setelah animasi selesai
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+
+</body>
+</html>
