@@ -779,23 +779,6 @@
       }
       createParticles();
 
-      // --- AUTO REFRESH SETIAP 10 DETIK ---
-      let refreshTimer;
-      function startAutoRefresh() {
-        if (refreshTimer) clearTimeout(refreshTimer);
-        refreshTimer = setTimeout(() => {
-          window.location.reload();
-        }, 10000); // 10 detik
-      }
-      startAutoRefresh();
-      // Reset timer jika ada interaksi pengguna (opsional, agar tidak refresh saat sedang membaca)
-      document.addEventListener('click', () => {
-        startAutoRefresh();
-      });
-      document.addEventListener('keypress', () => {
-        startAutoRefresh();
-      });
-
       // --- SLIDE MENU ---
       const hamburgerBtn = document.getElementById('hamburgerBtn');
       const slideMenu = document.getElementById('slideMenu');
