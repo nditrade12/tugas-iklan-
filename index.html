@@ -1,0 +1,3760 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0, minimum-scale=1.0, shrink-to-fit=no">
+    <meta name="monetag" content="6608e25925a927efcab9dba8935baa2a">
+    <title>NDI Media</title>
+    <link rel="icon" href="https://img.icons8.com/color/48/youtube-play.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/youtube-play.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ff0000">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#000;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;touch-action:manipulation;-webkit-user-select:none;user-select:none;overflow:hidden;height:100vh;width:100vw}
+        
+        .shorts-container{height:100vh;width:100%;overflow-y:scroll;scroll-snap-type:y mandatory;position:relative;z-index:1;padding-bottom:60px}
+        .shorts-container::-webkit-scrollbar{display:none}
+        .short-item{height:100vh;width:100%;scroll-snap-align:start;position:relative;background:#000;display:flex;justify-content:center;align-items:center}
+        .video-fullscreen{width:100%;height:100%;position:absolute;top:0;left:0}
+        .video-fullscreen iframe{width:100%;height:100%;border:none;pointer-events:none}
+        
+        .fixed-header{position:fixed;top:10px;left:8px;right:8px;z-index:200;display:flex;align-items:center;justify-content:space-between;pointer-events:none;gap:6px}
+        .ndi-logo-overlay{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:6px 10px;border-radius:25px;border:1px solid rgba(255,255,255,0.18);pointer-events:auto;flex-shrink:0}
+        .ndi-logo-icon{width:22px;height:22px;background:#f00;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#fff;flex-shrink:0}
+        .ndi-logo-text{color:#fff;font-size:13px;font-weight:700;white-space:nowrap}
+        .ndi-logo-text span{color:#f00}
+        .user-name-display{color:#ffd700;font-size:9px;font-weight:600;margin-left:4px;padding-left:4px;border-left:1px solid rgba(255,255,255,0.3);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .header-right-group{display:flex;align-items:center;gap:5px;flex-shrink:0}
+        .anti-ads-btn{background:rgba(0,180,100,0.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(0,255,100,0.3);border-radius:18px;padding:5px 10px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:3px;pointer-events:auto}
+        .anti-ads-btn.active{background:rgba(0,200,100,0.8);border-color:rgba(0,255,100,0.6)}
+        .header-divider{width:1px;height:20px;background:rgba(255,255,255,0.2);border-radius:1px;flex-shrink:0}
+        .balance-box{background:rgba(0,0,0,0.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,215,0,0.4);border-radius:25px;padding:6px 10px;display:flex;align-items:center;gap:6px;pointer-events:auto;flex-shrink:0}
+        .balance-info{display:flex;flex-direction:column;align-items:flex-end}
+        .balance-label{color:#aaa;font-size:8px;font-weight:600}
+        .balance-amount{color:#ffd700;font-weight:800;font-size:12px}
+        .withdraw-btn{background:linear-gradient(145deg,#fc0,#fa0);border:none;color:#000;font-weight:700;font-size:10px;padding:5px 10px;border-radius:15px;cursor:pointer;white-space:nowrap}
+        
+        .marquee-container{position:fixed;top:48px;left:0;right:0;z-index:190;pointer-events:none;height:26px;overflow:hidden;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,215,0,0.15);display:flex;align-items:center;transition:all 0.3s}
+        .marquee-container.hidden{opacity:0;height:0;border-bottom:none}
+        .marquee-wrapper{display:flex;width:100%;overflow:hidden}
+        .marquee-track{display:flex;animation:marqueeScroll 30s linear infinite;white-space:nowrap;padding:3px 0}
+        .marquee-item{display:inline-flex;align-items:center;gap:5px;padding:0 15px;color:#ffd700;font-size:10px;font-weight:600;text-shadow:0 0 6px rgba(0,0,0,0.8);white-space:nowrap}
+        .marquee-item .marquee-icon{font-size:12px}
+        .marquee-item .marquee-title{color:#fff;font-weight:700;background:rgba(255,0,0,0.5);padding:1px 6px;border-radius:8px;font-size:9px}
+        .marquee-item .marquee-text{color:#ffd700}
+        .marquee-item .marquee-separator{color:rgba(255,255,255,0.3);margin:0 8px;font-size:7px}
+        @keyframes marqueeScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        .marquee-status-dot{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:#0f6;box-shadow:0 0 8px rgba(0,255,100,0.5);z-index:191;animation:dotPulse 2s infinite}
+        @keyframes dotPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+        
+        .toggle-notif-btn{position:fixed;top:52px;right:10px;z-index:195;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:4px 10px;color:rgba(255,255,255,0.8);font-size:9px;cursor:pointer;font-weight:600;pointer-events:auto;display:flex;align-items:center;gap:4px;white-space:nowrap}
+        .toggle-notif-btn.off{opacity:0.6}
+        .toggle-notif-btn .notif-dot{width:5px;height:5px;border-radius:50%;background:#0f6;animation:dotPulse 2s infinite}
+        .toggle-notif-btn.off .notif-dot{background:#f00;animation:none}
+        .share-inline-btn{position:fixed;top:52px;right:75px;z-index:195;background:rgba(0,100,255,0.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(100,180,255,0.25);border-radius:16px;padding:4px 10px;color:rgba(100,180,255,0.9);font-size:9px;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;pointer-events:auto}
+        
+        /* PRODUCT TAG - POSISI KANAN ATAS (di bawah marquee) */
+        .product-tag{position:fixed;top:80px;right:12px;z-index:180;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,215,0,0.5);border-radius:15px;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;pointer-events:auto;transition:all 0.3s;max-width:250px}
+        .product-tag:hover{background:rgba(0,0,0,0.95);border-color:#ffd700;transform:scale(1.02)}
+        .product-tag-info{flex:1;min-width:0}
+        .product-tag-title{color:#fff;font-size:11px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .product-tag-price{color:#ffd700;font-size:12px;font-weight:700}
+        .product-tag-btn{background:#ffd700;color:#000;border:none;padding:5px 12px;border-radius:10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
+        
+        .progress-circle-container{position:fixed;right:12px;bottom:110px;z-index:250;pointer-events:none;opacity:0;transition:opacity 0.5s}
+        .progress-circle-container.active{opacity:1}
+        .progress-circle-wrapper{position:relative;width:55px;height:55px}
+        .progress-circle-bg{fill:none;stroke:rgba(255,255,255,0.1);stroke-width:4}
+        .progress-circle-fill{fill:none;stroke:#ffd700;stroke-width:4;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1s}
+        .progress-circle-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#ffd700;font-size:16px;font-weight:800}
+        .progress-circle-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.6);font-size:8px;font-weight:600}
+        
+        .video-info-overlay{position:absolute;bottom:75px;left:0;right:0;z-index:30;pointer-events:none;padding:60px 20px 16px 20px;background:linear-gradient(transparent,rgba(0,0,0,0.9))}
+        .video-title{color:#fff;font-size:16px;font-weight:600;margin-bottom:5px}
+        .empty-video-message{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#fff;z-index:10}
+        
+        .footer-text{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:9px;z-index:200;pointer-events:auto;cursor:pointer;padding:5px 12px;background:rgba(0,0,0,0.4);border-radius:15px}
+        .footer-text.hold-active{color:#f00!important}
+        .footer-progress{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);width:0%;height:2px;background:#f00;z-index:201;border-radius:2px;display:none}
+        .footer-progress.active{display:block}
+        
+        .notification-slide{position:fixed;top:80px;left:50%;transform:translate(-50%,-150%);z-index:10000;pointer-events:none;background:rgba(20,20,20,0.95);border-radius:20px;padding:10px 20px;color:#fff;font-weight:600;font-size:12px;text-align:center;box-shadow:0 8px 25px rgba(0,0,0,0.5);opacity:0;transition:all 0.4s;max-width:85%;border:1px solid rgba(255,255,255,0.1)}
+        .notification-slide.show{opacity:1;transform:translate(-50%,0)}
+        .notification-slide.success{background:rgba(0,180,80,0.9)}
+        .notification-slide.error{background:rgba(220,40,40,0.9)}
+        
+        .link-timer-badge{position:fixed;top:80px;right:12px;z-index:250;background:rgba(0,0,0,0.85);border-radius:16px;padding:8px 12px;display:none;align-items:center;gap:6px;color:#ffd700;font-size:11px;font-weight:600}
+        
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:55px;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-around;align-items:center;z-index:300}
+        .nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;cursor:pointer;color:rgba(255,255,255,0.4);position:relative}
+        .nav-item.active{color:#f00}
+        .nav-item.active::after{content:'';position:absolute;bottom:-6px;width:18px;height:2px;background:#f00;border-radius:1px}
+        .nav-icon{font-size:20px}
+        .nav-label{font-size:9px;font-weight:600}
+        
+        .long-video-container{height:100vh;width:100%;overflow-y:scroll;scroll-snap-type:y mandatory;display:none;background:#000;padding-bottom:55px}
+        .long-video-container.active{display:block}
+        .long-video-item{height:100vh;width:100%;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:50px 10px 70px}
+        .long-video-player-container{position:relative;width:100%;max-width:800px;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
+        .long-video-wrapper{position:absolute;top:0;left:0;width:100%;height:100%}
+        .long-video-wrapper iframe{width:100%;height:100%;border:none;pointer-events:none}
+        .long-video-blocker{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;cursor:pointer}
+        .long-video-controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.9));padding:35px 12px 12px;z-index:20;opacity:0;transition:opacity 0.3s;pointer-events:none}
+        .long-video-player-container:hover .long-video-controls{opacity:1;pointer-events:auto}
+        .controls-row{display:flex;align-items:center;gap:8px}
+        .control-btn{background:rgba(255,255,255,0.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0}
+        .control-btn.play-btn{width:38px;height:38px;font-size:18px;background:rgba(255,0,0,0.8)}
+        .progress-container{flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;cursor:pointer}
+        .progress-bar{height:100%;background:#f00;border-radius:2px;width:0%}
+        .time-display{color:#fff;font-size:10px;font-weight:600;min-width:60px;text-align:center}
+        .long-video-title{color:#fff;font-size:16px;font-weight:700;margin-top:12px;text-align:center}
+        
+        .long-video-progress-circle{position:fixed;right:12px;bottom:110px;z-index:250;cursor:pointer;opacity:0;transition:opacity 0.5s}
+        .long-video-progress-circle.active{opacity:1}
+        .long-video-timer-badge{position:fixed;top:80px;right:12px;z-index:250;background:rgba(0,0,0,0.85);border-radius:16px;padding:8px 12px;display:none;align-items:center;gap:6px;color:#ffd700;font-size:11px}
+        
+        .hadiah-container{height:100vh;width:100%;overflow-y:auto;display:none;background:#0a0a0a;padding:70px 12px 70px}
+        .hadiah-container.active{display:block}
+        .hadiah-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:15px}
+        .hadiah-card{background:linear-gradient(145deg,#1a1a1a,#111);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px;cursor:pointer}
+        .hadiah-card:active{transform:scale(0.95)}
+        .hadiah-card-icon{font-size:30px;margin-bottom:8px}
+        .hadiah-card-title{color:#fff;font-weight:700;font-size:13px;margin-bottom:3px}
+        .hadiah-card-desc{color:#888;font-size:10px}
+        .hadiah-section-title{color:#fff;font-size:16px;font-weight:700;margin:20px 0 12px}
+        
+        .reward-popup-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center}
+        .reward-popup-box{background:#1a1a1a;border:2px solid rgba(255,215,0,0.5);border-radius:25px;padding:30px;text-align:center;max-width:320px;width:90%}
+        .reward-icon{font-size:60px;margin-bottom:10px}
+        .reward-text{color:#fff;font-size:22px;font-weight:800;margin-bottom:6px}
+        .countdown-bar{width:100%;height:6px;background:#333;border-radius:8px;margin:12px 0;overflow:hidden}
+        .countdown-fill{height:100%;width:100%;background:linear-gradient(90deg,#fc0,#f60,#f00);border-radius:8px;animation:countdownShrink 3s linear forwards}
+        @keyframes countdownShrink{from{width:100%}to{width:0%}}
+        .timer-number{color:#fc0;font-weight:800;font-size:20px}
+        
+        .claim-failed-popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10002;display:flex;align-items:center;justify-content:center}
+        .claim-failed-box{background:#1a1a1a;border:2px solid rgba(255,0,0,0.6);border-radius:25px;padding:30px;text-align:center;max-width:320px}
+        .claim-failed-text{color:#f44;font-size:20px;font-weight:800;margin:10px 0}
+        .claim-failed-btn{background:#f44;color:#fff;border:none;padding:12px 30px;border-radius:16px;cursor:pointer;font-size:14px;font-family:inherit;width:100%;margin-top:15px}
+        
+        .midroll-ad-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center}
+        .midroll-timer{position:absolute;top:15px;right:15px;background:rgba(0,0,0,0.7);color:#fff;padding:6px 12px;border-radius:15px;font-size:13px;font-weight:700}
+        .midroll-skip{position:absolute;bottom:15px;right:15px;background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 16px;border-radius:15px;font-size:12px;cursor:pointer;display:none}
+        
+        .ad-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center}
+        .ad-overlay-timer{position:absolute;top:15px;right:15px;background:rgba(0,0,0,0.7);color:#fff;padding:6px 14px;border-radius:15px;font-size:13px}
+        .ad-overlay-skip{position:absolute;bottom:25px;right:15px;background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 16px;border-radius:15px;font-size:12px;cursor:pointer}
+        
+        .admin-panel{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0a;z-index:9999;overflow-y:auto;padding:15px;color:#fff}
+        .admin-panel.active{display:block}
+        .admin-section{background:#111;border:1px solid #333;border-radius:15px;padding:20px;margin-bottom:20px}
+        .admin-section h3{cursor:pointer;margin-bottom:15px;display:flex;justify-content:space-between}
+        .admin-input{width:100%;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:10px;color:#fff;margin-bottom:10px;font-family:inherit}
+        .admin-textarea{width:100%;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:10px;color:#fff;margin-bottom:10px;font-family:inherit;resize:vertical}
+        .admin-select{width:100%;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:10px;color:#fff;margin-bottom:10px;font-family:inherit}
+        .admin-btn{padding:12px 25px;border:none;border-radius:12px;font-weight:600;cursor:pointer;font-size:14px;font-family:inherit;width:100%;margin-top:10px}
+        .admin-btn-red{background:#f00;color:#fff}
+        .admin-list-item{padding:10px;background:#1a1a1a;border-radius:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+        .admin-delete-btn{background:#f00;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px}
+        .admin-toggle-btn{border:none;padding:6px 10px;border-radius:8px;cursor:pointer;margin-right:5px;color:#fff;font-size:12px}
+        
+        @media(max-width:768px){
+            .fixed-header{top:8px;left:5px;right:5px}.ndi-logo-text{font-size:11px}.balance-amount{font-size:10px}
+            .marquee-container{top:44px;height:22px}.marquee-item{font-size:9px}
+            .toggle-notif-btn{top:48px;right:6px;font-size:8px}.share-inline-btn{top:48px;right:62px;font-size:8px}
+            .product-tag{top:72px;right:8px;padding:8px 10px;max-width:200px}
+        }
+    </style>
+</head>
+<body>
+
+<div id="playerView">
+    <div id="loadingScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="text-align:center;color:#fff;"><h2>NDI <span style="color:#f00;">Media</span></h2><p id="loadingStatus">Memuat...</p></div>
+    </div>
+
+    <div class="fixed-header" id="fixedHeader">
+        <div class="ndi-logo-overlay"><div class="ndi-logo-icon">N</div><div class="ndi-logo-text">NDI <span>Media</span></div><span class="user-name-display" id="headerUserName"></span></div>
+        <div class="header-right-group">
+            <button class="anti-ads-btn" id="antiAdsBtn" onclick="openAntiAdsPopup()">🚫 <span id="antiAdsBtnText">Iklan</span></button>
+            <div class="header-divider"></div>
+            <div class="balance-box"><div class="balance-info"><span class="balance-label">Saldo</span><span class="balance-amount" id="balanceDisplay">0 🪙</span></div><button class="withdraw-btn" id="openWithdrawBtn">Tarik</button></div>
+        </div>
+    </div>
+
+    <div class="marquee-container" id="marqueeContainer"><div class="marquee-wrapper"><div class="marquee-track" id="marqueeTrack"></div></div><div class="marquee-status-dot"></div></div>
+    <button class="toggle-notif-btn" id="toggleNotifBtn" onclick="toggleMarqueeVisibility()"><span class="notif-dot"></span><span id="toggleNotifIcon">🔔</span></button>
+    <button class="share-inline-btn" onclick="shareApp()">📤 Share</button>
+    
+    <!-- PRODUCT TAG - KANAN ATAS -->
+    <div class="product-tag" id="productTag" style="display:none;" onclick="window.open(document.getElementById('productTag').getAttribute('data-link'),'_blank')">
+        <div class="product-tag-info">
+            <div class="product-tag-title" id="productTagTitle">🛍️ Produk</div>
+            <div class="product-tag-price" id="productTagPrice"></div>
+        </div>
+        <button class="product-tag-btn">🛒 Beli</button>
+    </div>
+    
+    <div class="link-timer-badge" id="linkTimerBadge"><span>⏱️</span><span>Sisa:</span><span id="badgeTimer">10</span></div>
+
+    <div class="shorts-container" id="shortsContainer"></div>
+
+    <div class="long-video-container" id="longVideoContainer">
+        <div class="long-video-progress-circle" id="longVideoProgressCircle" onclick="handleLongVideoProgressClick()"><div class="progress-circle-wrapper"><svg width="100%" height="100%" viewBox="0 0 60 60"><circle class="progress-circle-bg" cx="30" cy="30" r="26"></circle><circle class="progress-circle-fill" id="longVideoProgressFill" cx="30" cy="30" r="26"></circle></svg><div class="progress-circle-text" id="longVideoProgressText">🎁</div></div></div>
+        <div class="long-video-timer-badge" id="longVideoTimerBadge"><span>⏱️</span><span>Sisa:</span><span id="longBadgeTimer">10</span></div>
+    </div>
+
+    <div class="hadiah-container" id="hadiahContainer">
+        <div class="hadiah-section-title">🎁 Fitur Hadiah</div>
+        <div class="hadiah-grid">
+            <div class="hadiah-card" onclick="showDailyQuest()"><div class="hadiah-card-icon">🎯</div><div class="hadiah-card-title">Misi Harian</div></div>
+            <div class="hadiah-card" onclick="showCheckIn()"><div class="hadiah-card-icon">📅</div><div class="hadiah-card-title">Check-in</div></div>
+            <div class="hadiah-card" onclick="showSpinWheel()"><div class="hadiah-card-icon">🎰</div><div class="hadiah-card-title">Spin Wheel</div></div>
+            <div class="hadiah-card" onclick="showLootbox()"><div class="hadiah-card-icon">🎁</div><div class="hadiah-card-title">Blind Box</div></div>
+            <div class="hadiah-card" onclick="showPolling()"><div class="hadiah-card-icon">📊</div><div class="hadiah-card-title">Polling</div></div>
+            <div class="hadiah-card" onclick="showBadges()"><div class="hadiah-card-icon">🏅</div><div class="hadiah-card-title">Badge</div></div>
+            <div class="hadiah-card" onclick="showLeaderboardPopup()"><div class="hadiah-card-icon">🏆</div><div class="hadiah-card-title">Leaderboard</div></div>
+        </div>
+        <div class="hadiah-section-title">💰 Saldo</div>
+        <div style="background:#111;border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;">
+            <div id="hadiahBalance" style="color:#ffd700;font-size:24px;font-weight:800;">0 🪙</div>
+            <button class="withdraw-btn" style="margin-top:10px;padding:8px 16px;font-size:12px;" onclick="openWithdrawFromHadiah()">💸 Tarik</button>
+        </div>
+    </div>
+
+    <p class="footer-text" id="footerText">NDI Media &copy; 2026</p>
+    <div class="footer-progress" id="footerProgress"></div>
+
+    <div class="progress-circle-container" id="progressCircleContainer"><div class="progress-circle-wrapper"><svg width="100%" height="100%" viewBox="0 0 60 60"><circle class="progress-circle-bg" cx="30" cy="30" r="26"></circle><circle class="progress-circle-fill" id="progressCircleFill" cx="30" cy="30" r="26"></circle></svg><div class="progress-circle-text" id="progressCircleText">🎁</div></div></div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('reels')" id="navReels"><span class="nav-icon">📱</span><span class="nav-label">Reels</span></div>
+        <div class="nav-item" onclick="switchTab('video')" id="navVideo"><span class="nav-icon">📺</span><span class="nav-label">Video</span></div>
+        <div class="nav-item" onclick="switchTab('hadiah')" id="navHadiah"><span class="nav-icon">🎁</span><span class="nav-label">Hadiah</span></div>
+    </div>
+</div>
+
+
+
+<!-- ============ POPUPS ============ -->
+
+<!-- Name Input Popup -->
+<div id="nameInputPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid rgba(255,215,0,0.5);border-radius:20px;padding:25px;width:90%;max-width:350px;text-align:center;color:#fff;">
+        <div style="font-size:50px;margin-bottom:10px;">👋</div>
+        <h3 style="margin-bottom:8px;">Selamat Datang!</h3>
+        <p style="color:#ccc;font-size:13px;margin-bottom:20px;">Masukkan nama Anda untuk memulai</p>
+        <input type="text" id="userNameInput" placeholder="Nama Anda" style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:14px;color:#fff;font-size:15px;font-family:inherit;text-align:center;margin-bottom:15px;">
+        <button class="claim-failed-btn" onclick="saveUserName()" style="background:#fc0;color:#000;width:100%;">💾 Simpan & Mulai</button>
+    </div>
+</div>
+
+<!-- Anti Ads Popup -->
+<div id="antiAdsPopupOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid rgba(0,255,100,0.5);border-radius:20px;padding:25px;max-width:380px;width:90%;color:#fff;text-align:center;" onclick="event.stopPropagation()">
+        <h3 style="color:#0f6;font-size:22px;margin-bottom:8px;">🚫 Nonaktifkan Iklan</h3>
+        <p style="color:#ccc;font-size:13px;margin-bottom:20px;">Pilih durasi bebas iklan:</p>
+        
+        <div onclick="selectAntiAdsOption('5min')" id="antiAdsOption5" style="padding:12px;margin:8px 0;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.3);border-radius:12px;cursor:pointer;transition:all 0.3s;">
+            <div style="font-weight:700;color:#0f6;">⏱️ 5 Menit</div>
+            <div style="font-size:11px;color:#ccc;">Bebas iklan + auto 50 coin/35dtk</div>
+            <div style="color:#ffd700;font-weight:700;margin-top:4px;">🪙 1.000 Coin</div>
+        </div>
+        
+        <div onclick="selectAntiAdsOption('10min')" id="antiAdsOption10" style="padding:12px;margin:8px 0;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.3);border-radius:12px;cursor:pointer;transition:all 0.3s;">
+            <div style="font-weight:700;color:#0f6;">⏱️ 10 Menit</div>
+            <div style="font-size:11px;color:#ccc;">Bebas iklan + auto 100 coin/35dtk</div>
+            <div style="color:#ffd700;font-weight:700;margin-top:4px;">🪙 10.000 Coin</div>
+        </div>
+        
+        <div onclick="selectAntiAdsOption('50min')" id="antiAdsOption50" style="padding:12px;margin:8px 0;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.3);border-radius:12px;cursor:pointer;transition:all 0.3s;">
+            <div style="font-weight:700;color:#0f6;">⏱️ 50 Menit</div>
+            <div style="font-size:11px;color:#ccc;">Bebas iklan + auto 500 coin/35dtk</div>
+            <div style="color:#ffd700;font-weight:700;margin-top:4px;">🪙 100.000 Coin</div>
+        </div>
+        
+        <div onclick="selectAntiAdsOption('60min')" id="antiAdsOption60" style="padding:12px;margin:8px 0;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.3);border-radius:12px;cursor:pointer;transition:all 0.3s;">
+            <div style="font-weight:700;color:#0f6;">⏱️ 1 Jam</div>
+            <div style="font-size:11px;color:#ccc;">Bebas iklan + auto 10000 coin/35dtk</div>
+            <div style="color:#ffd700;font-weight:700;margin-top:4px;">🪙 1.000.000 Coin</div>
+        </div>
+        
+        <div style="color:#ffd700;font-size:13px;margin:12px 0;text-align:center;">Saldo Anda: <span id="antiAdsSaldoAmount">0</span> 🪙</div>
+        
+        <button class="claim-failed-btn" id="btnBuyAntiAds" onclick="buyAntiAds()" disabled style="background:#0c6;width:100%;">🔒 Pilih Durasi</button>
+        <button class="claim-failed-btn" onclick="closeAntiAdsPopup()" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:8px;">❌ Kembali</button>
+    </div>
+</div>
+
+<!-- Withdraw Popup -->
+<div id="withdrawPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;" onclick="if(event.target===this)closeWithdrawPopup()">
+    <div style="background:#1a1a1a;border:2px solid rgba(255,215,0,0.5);border-radius:20px;padding:25px;width:90%;max-width:420px;color:#fff;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div id="withdrawFormSection">
+            <h3 style="text-align:center;margin-bottom:20px;">💸 Penarikan Dana <span style="color:#ffd700;font-size:13px;cursor:pointer;text-decoration:underline;float:right;" onclick="showWithdrawHistory()">📋 Riwayat</span></h3>
+            
+            <div style="background:linear-gradient(135deg,#1a1a0a,#0d0d0d);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+                <div style="width:48px;height:48px;background:linear-gradient(145deg,#f00,#c00);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;" id="withdrawUserAvatar">👤</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="color:#fff;font-size:16px;font-weight:700;" id="withdrawUserNameDisplay">Nama User</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span style="color:#ffd700;font-weight:700;" id="withdrawUserCoins">0 🪙</span>
+                        <span style="color:#888;">➡️</span>
+                        <span style="color:#0f6;font-weight:700;" id="withdrawUserRp">Rp 0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom:15px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <span style="font-weight:600;font-size:14px;">🏆 Top 5 Pengguna</span>
+                    <span style="color:#ffd700;font-size:11px;cursor:pointer;text-decoration:underline;" onclick="loadLeaderboard()">🔄 Refresh</span>
+                </div>
+                <div id="leaderboardContainer"><div style="text-align:center;padding:10px;color:#888;">Memuat...</div></div>
+            </div>
+            
+            <div style="width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,215,0,0.3),transparent);margin:8px 0 15px 0;"></div>
+            
+            <label style="display:block;color:#ccc;font-size:13px;margin-bottom:5px;">Jumlah Coin (Minimal 1.000)</label>
+            <input type="number" id="wdCoinAmount" placeholder="Masukkan jumlah coin..." min="1000" oninput="updateWithdrawEstimate()" style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:14px;color:#fff;font-size:15px;font-family:inherit;margin-bottom:15px;">
+            
+            <div id="wdEstimate" style="color:#fc0;font-size:14px;margin:10px 0;text-align:center;font-weight:700;background:rgba(255,215,0,0.08);padding:10px 15px;border-radius:12px;">💰 Akan diterima: Rp 0</div>
+            <div style="color:#888;font-size:11px;text-align:center;margin-bottom:10px;">💡 100 coin = 1 Rp | Minimal penarikan 1.000 coin</div>
+            
+            <label style="display:block;color:#ccc;font-size:13px;margin-bottom:5px;">Nama Pemilik Dana</label>
+            <input type="text" id="wdName" placeholder="Nama lengkap sesuai DANA" style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:14px;color:#fff;font-size:15px;font-family:inherit;margin-bottom:15px;">
+            
+            <label style="display:block;color:#ccc;font-size:13px;margin-bottom:5px;">Nomor Dana</label>
+            <input type="tel" id="wdPhone" placeholder="08xxxxxxxxxx" style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:14px;color:#fff;font-size:15px;font-family:inherit;margin-bottom:15px;">
+            
+            <button class="claim-failed-btn" onclick="submitWithdrawRequest()" style="background:linear-gradient(145deg,#fc0,#fa0);color:#000;width:100%;">Kirim Permintaan</button>
+            <button class="claim-failed-btn" onclick="closeWithdrawPopup()" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:10px;">Kembali</button>
+        </div>
+        
+        <div id="withdrawHistorySection" style="display:none;">
+            <h3 style="text-align:center;margin-bottom:15px;">📋 Riwayat Penarikan <span style="color:#ffd700;font-size:13px;cursor:pointer;text-decoration:underline;float:right;" onclick="showWithdrawForm()">💸 Kembali</span></h3>
+            <div id="withdrawHistoryList"><div style="text-align:center;padding:20px;color:#888;">Memuat...</div></div>
+            <button class="claim-failed-btn" onclick="showWithdrawForm()" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:15px;">Kembali ke Form</button>
+        </div>
+    </div>
+</div>
+
+<!-- Spin Wheel Popup -->
+<div id="spinPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid #ffd700;border-radius:20px;padding:25px;width:90%;max-width:400px;text-align:center;color:#fff;">
+        <h3 style="margin-bottom:5px;">🎁 Spin Wheel Hadiah</h3>
+        <p id="spinInfo" style="color:#888;font-size:12px;margin-bottom:15px;">1x gratis hari ini!</p>
+        <div style="position:relative;width:200px;height:200px;margin:0 auto 20px;">
+            <canvas id="wheelCanvas" width="200" height="200" style="border-radius:50%;border:3px solid #ffd700;"></canvas>
+            <div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:24px;">▼</div>
+        </div>
+        <div id="spinResult" style="font-size:18px;font-weight:700;min-height:30px;color:#ffd700;"></div>
+        <button class="claim-failed-btn" id="spinBtn" onclick="spinWheel()" style="background:linear-gradient(145deg,#fc0,#fa0);color:#000;width:100%;">🎰 PUTAR GRATIS</button>
+        <button class="claim-failed-btn" onclick="document.getElementById('spinPopup').style.display='none'" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:8px;">Tutup</button>
+    </div>
+</div>
+
+<!-- Badge Popup -->
+<div id="badgePopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid rgba(255,215,0,0.5);border-radius:20px;padding:25px;width:90%;max-width:420px;max-height:80vh;overflow-y:auto;color:#fff;">
+        <h3 style="margin-bottom:15px;">🏷️ Badge Saya</h3>
+        <div id="badgeListContainer">Memuat...</div>
+        <button class="claim-failed-btn" onclick="document.getElementById('badgePopup').style.display='none'" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:15px;">Tutup</button>
+    </div>
+</div>
+
+<!-- Daily Quest Popup -->
+<div id="dailyQuestPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid rgba(255,100,180,0.5);border-radius:20px;padding:25px;width:90%;max-width:420px;max-height:80vh;overflow-y:auto;color:#fff;">
+        <h3 style="margin-bottom:5px;">🎯 Misi Harian</h3>
+        <p id="questDate" style="text-align:center;color:#888;font-size:12px;margin-bottom:15px;">-</p>
+        <div id="questListContainer">Memuat...</div>
+        <div style="text-align:center;color:#ffd700;font-size:12px;margin-top:10px;">🔄 Reset setiap hari pukul 00:00</div>
+        <button class="claim-failed-btn" onclick="document.getElementById('dailyQuestPopup').style.display='none'" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:15px;">Tutup</button>
+    </div>
+</div>
+
+<!-- Lootbox Popup -->
+<div id="lootboxPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid #ffd700;border-radius:20px;padding:25px;width:90%;max-width:380px;text-align:center;color:#fff;">
+        <h3 style="margin-bottom:8px;">🎁 Blind Box</h3>
+        <p style="color:#888;margin-bottom:10px;">Buka kotak misteri! Biaya: 500 🪙</p>
+        <div id="lootboxResult" style="margin:15px 0;min-height:80px;"></div>
+        <button class="claim-failed-btn" onclick="openLootbox()" style="background:linear-gradient(145deg,#fc0,#fa0);color:#000;width:100%;">🎁 BUKA (500 🪙)</button>
+        <button class="claim-failed-btn" onclick="document.getElementById('lootboxPopup').style.display='none'" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:8px;">Tutup</button>
+    </div>
+</div>
+
+<!-- Poll Popup -->
+<div id="pollPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid rgba(200,100,255,0.5);border-radius:20px;padding:25px;width:90%;max-width:420px;max-height:80vh;overflow-y:auto;color:#fff;">
+        <h3 style="margin-bottom:15px;">📊 Polling</h3>
+        <div id="pollContainer">Memutar...</div>
+        <button class="claim-failed-btn" onclick="document.getElementById('pollPopup').style.display='none'" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:15px;">Tutup</button>
+    </div>
+</div>
+
+<!-- Check-in Popup -->
+<div id="checkinPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid rgba(0,255,100,0.5);border-radius:20px;padding:25px;width:90%;max-width:380px;text-align:center;color:#fff;">
+        <h3 style="margin-bottom:10px;">📅 Daily Check-in</h3>
+        <p style="color:#888;margin-bottom:10px;">Login setiap hari dapat hadiah!</p>
+        <div id="checkinDays" style="margin-bottom:10px;"></div>
+        <div id="checkinReward" style="margin:10px 0;font-size:18px;font-weight:700;color:#ffd700;"></div>
+        <button class="claim-failed-btn" id="checkinBtn2" onclick="doCheckIn()" style="background:linear-gradient(145deg,#fc0,#fa0);color:#000;width:100%;">✅ Check-in Sekarang</button>
+        <button class="claim-failed-btn" onclick="document.getElementById('checkinPopup').style.display='none'" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:8px;">Tutup</button>
+    </div>
+</div>
+
+<!-- Leaderboard Popup -->
+<div id="leaderboardPopup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border:2px solid rgba(255,215,0,0.5);border-radius:20px;padding:25px;width:90%;max-width:400px;color:#fff;">
+        <h3 style="text-align:center;margin-bottom:15px;">🏆 Top 5 Pengguna</h3>
+        <div id="leaderboardList">Memutar...</div>
+        <button class="claim-failed-btn" onclick="document.getElementById('leaderboardPopup').style.display='none'" style="background:transparent;color:#fff;border:1px solid #555;width:100%;margin-top:15px;">Tutup</button>
+    </div>
+</div>
+
+<!-- ============ ADMIN PANEL ============ -->
+<div class="admin-panel" id="adminPanel">
+    <div style="max-width:900px;margin:0 auto;padding-bottom:40px;">
+        
+        <!-- Admin Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;background:#111;padding:20px;border-radius:15px;border:1px solid #333;">
+            <h2 style="font-size:24px;">NDI <span style="color:#f00;">Admin</span></h2>
+            <button onclick="closeAdminPanel()" style="background:transparent;color:#fff;border:1px solid #333;padding:10px 20px;border-radius:12px;cursor:pointer;font-size:14px;font-family:inherit;">✕ Tutup</button>
+        </div>
+        
+        <!-- Video Shorts Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">📹 Video Shorts ▼</h3>
+            <div>
+                <input type="text" id="videoUrl" placeholder="YouTube Video ID atau URL" class="admin-input">
+                <input type="text" id="videoTitle" placeholder="Judul Video" class="admin-input">
+                <div style="display:flex;gap:10px;">
+                    <input type="text" id="productTitle" placeholder="Judul Produk (opsional)" class="admin-input" style="flex:1;">
+                    <input type="text" id="productPrice" placeholder="Harga" class="admin-input" style="width:120px;">
+                </div>
+                <input type="text" id="productLink" placeholder="Link Produk (opsional)" class="admin-input">
+                <input type="hidden" id="editId">
+                <button class="admin-btn admin-btn-red" onclick="saveVideo()">💾 Simpan Video</button>
+                <div id="videoListContainer" style="margin-top:20px;">Memuat...</div>
+            </div>
+        </div>
+        
+        <!-- Video Panjang Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">📺 Video Panjang ▼</h3>
+            <div style="display:none;">
+                <input type="text" id="longVideoUrl" placeholder="YouTube Video ID" class="admin-input">
+                <input type="text" id="longVideoTitle" placeholder="Judul Video" class="admin-input">
+                <input type="number" id="longVideoDuration" placeholder="Durasi (detik)" class="admin-input">
+                <select id="longVideoCategory" class="admin-select">
+                    <option value="umum">Umum</option>
+                    <option value="tutorial">Tutorial</option>
+                    <option value="music">Musik</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="vlog">Vlog</option>
+                    <option value="review">Review</option>
+                </select>
+                <button class="admin-btn admin-btn-red" onclick="saveLongVideo()">💾 Simpan Video Panjang</button>
+                <div id="longVideoListContainer" style="margin-top:20px;">Memuat...</div>
+            </div>
+        </div>
+        
+        <!-- Marquee Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">📢 Notifikasi Marquee ▼</h3>
+            <div style="display:none;">
+                <input type="text" id="marqueeTitle" placeholder="Judul Notifikasi" class="admin-input">
+                <textarea id="marqueeContent" placeholder="Isi notifikasi (pisah baris dengan enter)" rows="3" class="admin-textarea"></textarea>
+                <button class="admin-btn admin-btn-red" onclick="saveMarquee()">💾 Simpan Notifikasi</button>
+                <div id="marqueeListContainer" style="margin-top:20px;">Memuat...</div>
+            </div>
+        </div>
+        
+        <!-- Link Hadiah Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">🔗 Link Hadiah ▼</h3>
+            <div style="display:none;">
+                <div style="display:flex;gap:10px;">
+                    <input type="url" id="claimLinkInput" placeholder="https://example.com" class="admin-input" style="flex:2;">
+                    <input type="number" id="claimCoinInput" value="50" placeholder="Coin" class="admin-input" style="flex:1;">
+                    <button class="admin-btn admin-btn-red" onclick="addClaimLink()" style="width:auto;">➕</button>
+                </div>
+                <div id="claimLinkList" style="margin-top:20px;">Memuat...</div>
+            </div>
+        </div>
+        
+        <!-- Iklan Sela Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">📢 Iklan Sela ▼</h3>
+            <div style="display:none;">
+                <input type="text" id="adTitle" placeholder="Judul Iklan" class="admin-input">
+                <input type="url" id="adImageUrl" placeholder="URL Gambar (opsional)" class="admin-input">
+                <input type="url" id="adLinkUrl" placeholder="Link Tujuan (opsional)" class="admin-input">
+                <div style="display:flex;gap:10px;">
+                    <input type="number" id="adDuration" value="5" placeholder="Durasi (detik)" class="admin-input" style="flex:1;">
+                    <input type="number" id="adIntervalInput" value="3" placeholder="Interval (N video)" class="admin-input" style="flex:1;" onchange="AD_INTERVAL=parseInt(this.value)||3">
+                </div>
+                <button class="admin-btn admin-btn-red" onclick="saveAdvertisement()">💾 Simpan Iklan</button>
+                <div id="adListContainer" style="margin-top:20px;">Memuat...</div>
+            </div>
+        </div>
+        
+        <!-- Iklan Mid-Roll Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">🎬 Iklan Mid-Roll (Video Panjang) ▼</h3>
+            <div style="display:none;">
+                <input type="text" id="midrollAdTitle" placeholder="Judul Iklan" class="admin-input">
+                <div style="display:flex;gap:10px;">
+                    <input type="number" id="midrollAdDuration" value="5" placeholder="Durasi (detik)" class="admin-input" style="flex:1;">
+                    <input type="number" id="midrollAdProbability" value="50" placeholder="Probabilitas (%)" class="admin-input" style="flex:1;">
+                </div>
+                <input type="url" id="midrollAdImage" placeholder="URL Gambar Iklan" class="admin-input">
+                <input type="url" id="midrollAdLink" placeholder="Link Tujuan" class="admin-input">
+                <select id="midrollAdPlacement" class="admin-select">
+                    <option value="random">Acak (Rekomendasi)</option>
+                    <option value="beginning">Awal Video (10%)</option>
+                    <option value="middle">Tengah Video (50%)</option>
+                    <option value="end">Akhir Video (80%)</option>
+                </select>
+                <select id="midrollAdSkippable" class="admin-select">
+                    <option value="true">Bisa Diskip setelah 3 detik</option>
+                    <option value="false">Tidak Bisa Diskip</option>
+                </select>
+                <button class="admin-btn admin-btn-red" onclick="saveMidRollAd()">💾 Simpan Mid-Roll</button>
+                <div id="midrollAdListContainer" style="margin-top:20px;">Memuat...</div>
+            </div>
+        </div>
+        
+        <!-- Data User Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">👥 Data User ▼</h3>
+            <div style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <span style="font-weight:600;">Daftar Semua User</span>
+                    <button class="admin-delete-btn" onclick="deleteAllUsers()" style="background:#f00;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;">🗑️ Hapus Semua</button>
+                </div>
+                <div class="search-box" style="margin-bottom:10px;">
+                    <input type="text" id="userSearchInput" placeholder="🔍 Cari user..." class="admin-input" oninput="filterUserList()">
+                </div>
+                <div id="userEditPanel" style="display:none;background:#0d0d0d;border:1px solid #f00;border-radius:15px;padding:20px;margin-bottom:15px;">
+                    <h4 style="margin-bottom:15px;">✏️ Edit User: <span id="editUserDisplayName">-</span></h4>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <div style="flex:1;">
+                            <label style="display:block;color:#ccc;font-size:12px;margin-bottom:5px;">Nama</label>
+                            <input type="text" id="editUserName" class="admin-input">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="display:block;color:#ccc;font-size:12px;margin-bottom:5px;">Saldo (Coin)</label>
+                            <input type="number" id="editUserCoins" class="admin-input">
+                        </div>
+                    </div>
+                    <input type="hidden" id="editUserUid">
+                    <div style="display:flex;gap:10px;">
+                        <button class="admin-btn admin-btn-red" onclick="saveUserEdit()" style="flex:1;">💾 Simpan</button>
+                        <button class="admin-btn" onclick="closeUserEdit()" style="flex:1;background:#333;color:#fff;">❌ Batal</button>
+                    </div>
+                </div>
+                <div id="userListContainer">Memuat...</div>
+            </div>
+        </div>
+        
+        <!-- Permintaan Penarikan Section -->
+        <div class="admin-section">
+            <h3 onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">📤 Permintaan Penarikan ▼</h3>
+            <div style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <span style="font-weight:600;">Daftar Permintaan</span>
+                    <span id="pendingWithdrawCount" style="background:#fc0;color:#000;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:700;">0 Pending</span>
+                </div>
+                <div id="withdrawRequestList">Memuat...</div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+
+
+
+<script>
+// ============================================
+// FIREBASE INITIALIZATION
+// ============================================
+var firebaseConfig = {
+    apiKey: "AIzaSyAcWeDf4OX93tWOaIBUhBbiRNPhS6F_15c",
+    authDomain: "ndi3112.firebaseapp.com",
+    projectId: "ndi3112",
+    storageBucket: "ndi3112.firebasestorage.app",
+    messagingSenderId: "811811919816",
+    appId: "1:811811919816:web:3ff33b4e890d571f5392fd"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
+var auth = firebase.auth();
+console.log('✅ Firebase Initialized');
+
+// ============================================
+// GLOBAL STATE VARIABLES
+// ============================================
+var currentUser = null;
+var players = {};
+var currentIndex = 0;
+var videos = [];
+var totalVideos = 0;
+var claimLinks = [];
+var popupActive = false;
+var userCoins = 0;
+var userName = '';
+var allVideos = [];
+var videoPlaying = false;
+var marqueeNotifications = [];
+var marqueeVisible = true;
+var linkTimerInterval = null;
+var linkTimeLeft = 10;
+var claimRewardCoins = 0;
+var claimRewardUrl = '';
+var isWaitingForLink = false;
+var progressCircleInterval = null;
+var progressCircleTimeLeft = 35;
+var progressCircleTotalTime = 35;
+var CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 26;
+var antiAdsActive = false;
+var antiAdsEndTime = null;
+var antiAdsTimerInterval = null;
+var selectedAntiAdsOption = null;
+var advertisements = [];
+var adIntervalCounter = 0;
+var AD_INTERVAL = 3;
+var isShowingAd = false;
+var adTimerInterval = null;
+var currentTab = 'reels';
+var longVideos = [];
+var longVideoPlayers = {};
+var longVideoStates = {};
+var currentLongIndex = 0;
+var activeMidRollAds = [];
+var midRollTimers = {};
+var midRollShown = {};
+var isMidRollShowing = false;
+var midRollPendingTimeout = null;
+var longVideoProgressState = {
+    interval: null,
+    timeLeft: 35,
+    totalTime: 35,
+    isActive: false,
+    isWaitingForLink: false,
+    linkTimerInterval: null,
+    linkTimeLeft: 10,
+    claimRewardCoins: 0,
+    claimRewardUrl: '',
+    CIRCUMFERENCE: 2 * Math.PI * 26
+};
+var dailyQuestData = {};
+var checkInData = { streak: 0, lastCheckIn: '' };
+var currentPoll = null;
+var userVoted = false;
+var isSpinning = false;
+var withdrawSuccessNotifications = [];
+var allLongVideos = [];
+var midRollAds = [];
+var isEditing = false;
+var isLongEditing = false;
+var lastProgressActivity = Date.now();
+var claimWindowRef = null;
+var claimStartTime = 0;
+var notifCounter = 0;
+var allUsersData = [];
+var currentProductLink = '';
+
+var DAILY_QUESTS = [
+    { id: 'watch', title: 'Nonton Video', target: 10, reward: 10, icon: '👁️' },
+    { id: 'share', title: 'Bagikan Aplikasi', target: 1, reward: 5, icon: '📤' },
+    { id: 'login', title: 'Login Hari Ini', target: 1, reward: 3, icon: '✅' }
+];
+
+var ALL_BADGES = [
+    { id: 'collector', name: 'Kolektor', desc: 'Tonton 100 video', icon: '👁️', check: function() { return (dailyQuestData.watch && dailyQuestData.watch.count || 0) >= 100; } },
+    { id: 'sharer', name: 'Penyebar Berita', desc: 'Share 10 kali', icon: '📤', check: function() { return (dailyQuestData.share && dailyQuestData.share.count || 0) >= 10; } },
+    { id: 'sultan', name: 'Sultan Koin', desc: '50.000 koin', icon: '💎', check: function() { return userCoins >= 50000; } },
+    { id: 'early', name: 'Pengunjung Awal', desc: 'Login 7 hari', icon: '🌟', check: function() { return getLoginStreak() >= 7; } },
+    { id: 'loyal', name: 'User Setia', desc: '30 hari', icon: '👑', check: function() { return getTotalDays() >= 30; } }
+];
+
+var WHEEL_PRIZES = [
+    { label: '5 🪙', value: 5, color: '#ff6b6b' },
+    { label: '10 🪙', value: 10, color: '#ffd93d' },
+    { label: 'ZONK', value: 0, color: '#ff922b' },
+    { label: '15 🪙', value: 15, color: '#6bcb77' },
+    { label: 'ZONK', value: 0, color: '#845ef7' },
+    { label: '20 🪙', value: 20, color: '#4d96ff' },
+    { label: '5 🪙', value: 5, color: '#20c997' },
+    { label: 'ZONK', value: 0, color: '#ff6b6b' }
+];
+
+var LOOTBOX_PRIZES = [
+    { type: 'coin', value: 50, label: '50 🪙', weight: 30 },
+    { type: 'coin', value: 100, label: '100 🪙', weight: 20 },
+    { type: 'coin', value: 500, label: '500 🪙', weight: 5 },
+    { type: 'badge', badgeId: 'lucky', label: '🏅 Badge Hoki', weight: 10 },
+    { type: 'zonk', label: '😅 ZONK', weight: 35 }
+];
+
+var CHECKIN_REWARDS = [5, 10, 15, 25, 50, 75, 150];
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+function playCoinSound() {
+    try {
+        var a = new (window.AudioContext || window.webkitAudioContext)();
+        var o = a.createOscillator();
+        var g = a.createGain();
+        o.connect(g);
+        g.connect(a.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(800, a.currentTime);
+        o.frequency.exponentialRampToValueAtTime(1200, a.currentTime + 0.1);
+        g.gain.setValueAtTime(0.3, a.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, a.currentTime + 0.3);
+        o.start(a.currentTime);
+        o.stop(a.currentTime + 0.3);
+    } catch (e) {}
+}
+
+function playErrorSound() {
+    try {
+        var a = new (window.AudioContext || window.webkitAudioContext)();
+        var o = a.createOscillator();
+        var g = a.createGain();
+        o.connect(g);
+        g.connect(a.destination);
+        o.type = 'square';
+        o.frequency.setValueAtTime(200, a.currentTime);
+        o.frequency.exponentialRampToValueAtTime(100, a.currentTime + 0.3);
+        g.gain.setValueAtTime(0.2, a.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, a.currentTime + 0.5);
+        o.start(a.currentTime);
+        o.stop(a.currentTime + 0.5);
+    } catch (e) {}
+}
+
+function escapeHtml(t) {
+    if (!t) return '';
+    var d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+}
+
+function extractVideoId(inp) {
+    inp = inp.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(inp)) return inp;
+    var m = inp.match(/(?:shorts\/|youtu\.be\/|embed\/|watch\?v=)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+}
+
+function formatTime(s) {
+    if (isNaN(s)) return '0:00';
+    var m = Math.floor(s / 60);
+    return m + ':' + Math.floor(s % 60).toString().padStart(2, '0');
+}
+
+function formatDuration(s) {
+    if (!s || s === 0) return '??:??';
+    var h = Math.floor(s / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    var sec = s % 60;
+    if (h > 0) return h + ':' + m.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0');
+    return m + ':' + sec.toString().padStart(2, '0');
+}
+
+function getToday() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function shuffleArray(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+    }
+    return a;
+}
+
+function getLoginStreak() {
+    var s = 0;
+    for (var i = 0; i < 30; i++) {
+        var d = new Date();
+        d.setDate(d.getDate() - i);
+        if (localStorage.getItem('ndi_quests_' + d.toISOString().split('T')[0])) s++;
+        else break;
+    }
+    return s;
+}
+
+function getTotalDays() {
+    var sv = localStorage.getItem('ndi_first_visit');
+    if (!sv) {
+        localStorage.setItem('ndi_first_visit', Date.now().toString());
+        return 1;
+    }
+    return Math.floor((Date.now() - parseInt(sv)) / 86400000) + 1;
+}
+
+function showNotification(m, t, d) {
+    d = d || 2500;
+    var n = document.createElement('div');
+    n.className = 'notification-slide ' + (t || 'info');
+    n.textContent = m;
+    document.body.appendChild(n);
+    setTimeout(function() { n.classList.add('show'); }, 10);
+    setTimeout(function() {
+        n.classList.remove('show');
+        setTimeout(function() { if (n.parentNode) n.remove(); }, 400);
+    }, d);
+}
+
+function showCenterNotification(m) {
+    lastProgressActivity = Date.now();
+    showNotification(m, 'info', 2500);
+}
+
+// ============================================
+// MARQUEE / NOTIFIKASI BERJALAN
+// ============================================
+function loadMarqueeVisibility() {
+    if (localStorage.getItem('ndi_marquee_visible') === 'false') {
+        marqueeVisible = false;
+        document.getElementById('marqueeContainer').classList.add('hidden');
+        document.getElementById('toggleNotifIcon').textContent = '🔕';
+        document.getElementById('toggleNotifBtn').classList.add('off');
+    }
+}
+
+function toggleMarqueeVisibility() {
+    marqueeVisible = !marqueeVisible;
+    var c = document.getElementById('marqueeContainer');
+    var b = document.getElementById('toggleNotifBtn');
+    if (marqueeVisible) {
+        c.classList.remove('hidden');
+        document.getElementById('toggleNotifIcon').textContent = '🔔';
+        b.classList.remove('off');
+        localStorage.setItem('ndi_marquee_visible', 'true');
+    } else {
+        c.classList.add('hidden');
+        document.getElementById('toggleNotifIcon').textContent = '🔕';
+        b.classList.add('off');
+        localStorage.setItem('ndi_marquee_visible', 'false');
+    }
+}
+
+function renderMarqueeToScreen() {
+    var track = document.getElementById('marqueeTrack');
+    if (!track) return;
+    
+    var items = [];
+    
+    marqueeNotifications.forEach(function(mn) {
+        var lines = (mn.content || '').split('\n').filter(function(l) { return l.trim(); });
+        lines.forEach(function(l) {
+            items.push({ icon: '📢', title: mn.title, text: l });
+        });
+    });
+    
+    withdrawSuccessNotifications.forEach(function(w) {
+        items.push({ icon: '💰', title: 'WD Sukses', text: (w.name || 'User') + ': Rp ' + (w.rpAmount || 0).toLocaleString() });
+    });
+    
+    if (items.length === 0) {
+        items.push({ icon: '🎬', title: 'NDI Media', text: 'Selamat menonton! Dapatkan koin setiap 35 detik 🪙' });
+    }
+    
+    var html = '';
+    for (var loop = 0; loop < 2; loop++) {
+        items.forEach(function(item, i) {
+            html += '<div class="marquee-item">';
+            html += '<span class="marquee-icon">' + item.icon + '</span>';
+            if (item.title) html += '<span class="marquee-title">' + escapeHtml(item.title) + '</span>';
+            html += '<span class="marquee-text">' + escapeHtml(item.text) + '</span>';
+            if (i < items.length - 1 || loop === 0) html += '<span class="marquee-separator">│</span>';
+            html += '</div>';
+        });
+    }
+    
+    track.innerHTML = html;
+}
+
+async function loadMarqueeNotifications() {
+    try {
+        var s = await db.collection('marqueeNotifications').get();
+        marqueeNotifications = [];
+        s.forEach(function(d) {
+            marqueeNotifications.push({ id: d.id, title: d.data().title, content: d.data().content });
+        });
+        marqueeNotifications.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        renderMarqueeToScreen();
+    } catch (e) {
+        marqueeNotifications = [];
+        renderMarqueeToScreen();
+    }
+}
+
+async function loadWithdrawSuccessForMarquee() {
+    try {
+        var s = await db.collection('withdrawRequests').where('status', '==', 'success').get();
+        withdrawSuccessNotifications = [];
+        s.forEach(function(d) { withdrawSuccessNotifications.push(d.data()); });
+        withdrawSuccessNotifications.sort(function(a, b) { return b.id ? b.id.localeCompare(a.id) : 0; });
+        renderMarqueeToScreen();
+    } catch (e) {}
+}
+
+// ============================================
+// TAB NAVIGATION
+// ============================================
+function switchTab(tab) {
+    currentTab = tab;
+    
+    document.querySelectorAll('.nav-item').forEach(function(i) { i.classList.remove('active'); });
+    document.getElementById('nav' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+    
+    document.getElementById('shortsContainer').style.display = (tab === 'reels') ? 'block' : 'none';
+    document.getElementById('longVideoContainer').classList.toggle('active', tab === 'video');
+    document.getElementById('hadiahContainer').classList.toggle('active', tab === 'hadiah');
+    
+    if (tab === 'hadiah') {
+        document.getElementById('progressCircleContainer').style.display = 'none';
+        stopProgressCircle();
+        updateHadiahBalance();
+    } else {
+        document.getElementById('progressCircleContainer').style.display = 'block';
+    }
+    
+    pauseAllVideos();
+    pauseAllLongVideos();
+    
+    if (tab === 'reels') playCurrentVideo();
+    else if (tab === 'video') playCurrentLongVideo();
+    
+    if (tab === 'video' && longVideos.length === 0) loadLongVideos();
+}
+
+function updateHadiahBalance() {
+    var e = document.getElementById('hadiahBalance');
+    if (e) e.textContent = (userCoins || 0).toLocaleString() + ' 🪙';
+}
+
+function openWithdrawFromHadiah() {
+    document.getElementById('withdrawPopup').style.display = 'flex';
+    pauseAllVideos();
+    pauseAllLongVideos();
+    stopProgressCircle();
+    stopLVProgressCircle();
+    updateWithdrawUserCard();
+    updateWithdrawEstimate();
+    loadLeaderboard();
+}
+</script>
+
+
+<script>
+// ============================================
+// PRODUCT TAG UPDATE FUNCTION
+// ============================================
+function updateProductTag(videoData) {
+    var productTag = document.getElementById('productTag');
+    if (!productTag) return;
+    
+    if (videoData && videoData.productLink && videoData.productLink.trim() !== '') {
+        productTag.style.display = 'flex';
+        productTag.setAttribute('data-link', videoData.productLink);
+        document.getElementById('productTagTitle').textContent = videoData.productTitle || '🛍️ Produk';
+        document.getElementById('productTagPrice').textContent = videoData.productPrice || '';
+        console.log('🛒 Product tag updated:', videoData.productTitle);
+    } else {
+        productTag.style.display = 'none';
+        productTag.setAttribute('data-link', '');
+        console.log('🛒 Product tag hidden - no product data');
+    }
+}
+
+// ============================================
+// SHORTS PLAYER FUNCTIONS
+// ============================================
+function createShortHTML(v, i) {
+    var embedUrl = 'https://www.youtube.com/embed/' + v.videoId + 
+        '?rel=0&modestbranding=1&autoplay=1&mute=0&loop=1&playlist=' + v.videoId + 
+        '&playsinline=1&controls=0&disablekb=1&fs=0&enablejsapi=1&showinfo=0&iv_load_policy=3';
+    
+    var html = '<div class="short-item" data-index="' + i + '">';
+    html += '<div class="video-fullscreen">';
+    html += '<iframe class="short-video" data-video-id="' + v.videoId + '" data-index="' + i + '" ';
+    html += 'src="' + embedUrl + '" frameborder="0" ';
+    html += 'allow="autoplay;encrypted-media;gyroscope;picture-in-picture"></iframe>';
+    html += '</div>';
+    html += '<div class="video-info-overlay">';
+    html += '<div class="video-title">' + escapeHtml(v.title) + '</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    return html;
+}
+
+function renderVideos() {
+    var container = document.getElementById('shortsContainer');
+    var html = '';
+    var renderCount = Math.min(3, totalVideos);
+    
+    for (var i = 0; i < renderCount; i++) {
+        html += createShortHTML(videos[i], i);
+    }
+    
+    html += '<div class="short-item" id="emptyVideoItem" style="display:none;">';
+    html += '<div class="empty-video-message">';
+    html += '<h2>📹 Belum Ada Video</h2>';
+    html += '<p>Admin belum menambahkan video pendek.</p>';
+    html += '</div></div>';
+    
+    container.innerHTML = html;
+    initializePlayerEvents();
+    
+    // Update product tag untuk video pertama
+    if (videos.length > 0) {
+        updateProductTag(videos[0]);
+    }
+    
+    for (var j = renderCount; j < totalVideos; j++) {
+        (function(idx) {
+            setTimeout(function() { renderVideoAtIndex(idx); }, idx * 200);
+        })(j);
+    }
+}
+
+function renderVideoAtIndex(i) {
+    var container = document.getElementById('shortsContainer');
+    if (container.querySelector('.short-item[data-index="' + i + '"]') || i >= totalVideos || i < 0) return;
+    
+    var div = document.createElement('div');
+    div.className = 'short-item';
+    div.setAttribute('data-index', i);
+    div.innerHTML = createShortHTML(videos[i], i)
+        .replace('<div class="short-item" data-index="' + i + '">', '')
+        .replace('</div>', '');
+    
+    var emptyItem = document.getElementById('emptyVideoItem');
+    if (emptyItem) {
+        container.insertBefore(div, emptyItem);
+    } else {
+        container.appendChild(div);
+    }
+    
+    initPlayerForIndex(i);
+}
+
+function initPlayerForIndex(i) {
+    var iframe = document.querySelector('.short-video[data-index="' + i + '"]');
+    if (!iframe || players[i]) return;
+    
+    players[i] = new YT.Player(iframe, {
+        events: {
+            onReady: function(event) {
+                event.target.setVolume(100);
+                event.target.unMute();
+                if (i === currentIndex && !document.getElementById('adminPanel').classList.contains('active')) {
+                    event.target.playVideo();
+                    videoPlaying = true;
+                    hideLoadingScreen();
+                }
+                preloadNextVideo(i);
+            },
+            onStateChange: function(event) {
+                if (event.data === 1) {
+                    videoPlaying = true;
+                    hideLoadingScreen();
+                }
+                if (event.data === 0 && i === currentIndex) {
+                    handleVideoEnded(i);
+                }
+                if (event.data === -1) {
+                    setTimeout(function() {
+                        if (i === currentIndex && players[i]) {
+                            players[i].playVideo();
+                            players[i].unMute();
+                        }
+                    }, 1000);
+                }
+            },
+            onError: function(event) {
+                console.warn('Video error at index', i, event.data);
+                if (i < totalVideos - 1) {
+                    setTimeout(function() { scrollToVideo(i + 1); }, 1000);
+                }
+            }
+        }
+    });
+}
+
+function preloadNextVideo(i) {
+    var next = i + 1;
+    if (next < totalVideos && !players[next]) {
+        renderVideoAtIndex(next);
+        setTimeout(function() { initPlayerForIndex(next); }, 500);
+    }
+    
+    var next2 = i + 2;
+    if (next2 < totalVideos && !players[next2]) {
+        renderVideoAtIndex(next2);
+        setTimeout(function() { initPlayerForIndex(next2); }, 1000);
+    }
+}
+
+function handleVideoEnded(i) {
+    if (i < totalVideos - 1) {
+        scrollToVideo(i + 1);
+    } else {
+        setTimeout(function() { scrollToVideo(0); }, 500);
+    }
+}
+
+function updateActiveIndex() {
+    var container = document.getElementById('shortsContainer');
+    var height = container.clientHeight;
+    var scrollTop = container.scrollTop;
+    var newIndex = Math.round(scrollTop / height);
+    
+    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < totalVideos) {
+        var oldIndex = currentIndex;
+        
+        if (players[oldIndex]) {
+            try { players[oldIndex].pauseVideo(); } catch (e) {}
+        }
+        
+        currentIndex = newIndex;
+        renderVideoAtIndex(newIndex);
+        
+        // Update product tag untuk video yang aktif
+        if (videos[newIndex]) {
+            updateProductTag(videos[newIndex]);
+        }
+        
+        setTimeout(function() {
+            if (players[newIndex]) {
+                players[newIndex].setVolume(100);
+                players[newIndex].unMute();
+                players[newIndex].playVideo();
+                videoPlaying = true;
+                updateQuestProgress('watch');
+            } else {
+                initPlayerForIndex(newIndex);
+            }
+        }, 100);
+        
+        setTimeout(function() { preloadNearbyVideos(); }, 300);
+    }
+}
+
+function preloadNearbyVideos() {
+    for (var i = Math.max(0, currentIndex - 3); i <= Math.min(totalVideos - 1, currentIndex + 3); i++) {
+        renderVideoAtIndex(i);
+        if (!players[i]) {
+            (function(idx) {
+                setTimeout(function() { initPlayerForIndex(idx); }, 200);
+            })(i);
+        }
+    }
+}
+
+function playCurrentVideo() {
+    if (currentTab !== 'reels') return;
+    
+    var player = players[currentIndex];
+    if (player) {
+        player.setVolume(100);
+        player.unMute();
+        player.playVideo();
+        videoPlaying = true;
+    } else if (currentIndex < totalVideos) {
+        renderVideoAtIndex(currentIndex);
+        initPlayerForIndex(currentIndex);
+    }
+    
+    // Update product tag
+    if (videos[currentIndex]) {
+        updateProductTag(videos[currentIndex]);
+    }
+}
+
+function pauseAllVideos() {
+    for (var key in players) {
+        try { players[key].pauseVideo(); } catch (e) {}
+    }
+    videoPlaying = false;
+}
+
+function scrollToVideo(i) {
+    if (i >= 0 && i < totalVideos) {
+        renderVideoAtIndex(i);
+        if (!players[i]) initPlayerForIndex(i);
+        
+        // Update product tag
+        if (videos[i]) {
+            updateProductTag(videos[i]);
+        }
+        
+        if (i > currentIndex && shouldShowAd()) {
+            showAdvertisement();
+            var checkInterval = setInterval(function() {
+                if (!isShowingAd) {
+                    clearInterval(checkInterval);
+                    performScroll(i);
+                }
+            }, 500);
+        } else {
+            performScroll(i);
+        }
+    }
+}
+
+function performScroll(i) {
+    var container = document.getElementById('shortsContainer');
+    var targetScroll = i * container.clientHeight;
+    
+    container.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+    });
+    
+    setTimeout(function() {
+        if (players[i]) {
+            players[i].playVideo();
+            players[i].unMute();
+            players[i].setVolume(100);
+            videoPlaying = true;
+        }
+    }, 300);
+}
+
+function initializePlayerEvents() {
+    var container = document.getElementById('shortsContainer');
+    var scrollTimeout;
+    
+    container.addEventListener('scroll', function() {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(function() {
+            updateActiveIndex();
+            preloadNearbyVideos();
+        }, 150);
+    }, { passive: true });
+    
+    var touchStartY = 0;
+    container.addEventListener('touchstart', function(e) {
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    container.addEventListener('touchend', function(e) {
+        var diff = touchStartY - e.changedTouches[0].screenY;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0 && currentIndex < totalVideos - 1) {
+                scrollToVideo(currentIndex + 1);
+            } else if (diff < 0 && currentIndex > 0) {
+                scrollToVideo(currentIndex - 1);
+            }
+        }
+    });
+    
+    setTimeout(function() {
+        if (currentIndex < totalVideos) {
+            renderVideoAtIndex(currentIndex);
+            initPlayerForIndex(currentIndex);
+            if (videos[currentIndex]) {
+                updateProductTag(videos[currentIndex]);
+            }
+        }
+        for (var i = currentIndex + 1; i <= Math.min(totalVideos - 1, currentIndex + 2); i++) {
+            renderVideoAtIndex(i);
+            (function(idx) {
+                setTimeout(function() { initPlayerForIndex(idx); }, 500);
+            })(i);
+        }
+    }, 300);
+}
+
+function hideLoadingScreen() {
+    setTimeout(function() {
+        var loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            loadingScreen.style.transition = 'opacity 0.8s';
+            setTimeout(function() {
+                if (loadingScreen) loadingScreen.style.display = 'none';
+            }, 800);
+        }
+    }, 500);
+}
+
+// ============================================
+// LONG VIDEO PLAYER FUNCTIONS
+// ============================================
+function createLongHTML(v, i) {
+    var html = '<div class="long-video-item" data-long-index="' + i + '">';
+    html += '<div class="long-video-player-container" id="pc-' + i + '">';
+    html += '<div class="long-video-wrapper">';
+    html += '<iframe class="long-video-iframe" id="iframe-' + i + '" ';
+    html += 'data-video-id="' + v.videoId + '" data-long-index="' + i + '" ';
+    html += 'src="https://www.youtube.com/embed/' + v.videoId + '?rel=0&modestbranding=1&autoplay=0&mute=0&playsinline=1&controls=0&disablekb=1&fs=0&enablejsapi=1" ';
+    html += 'frameborder="0" allow="autoplay;encrypted-media;gyroscope;picture-in-picture"></iframe>';
+    html += '</div>';
+    html += '<div class="long-video-blocker" id="blocker-' + i + '"></div>';
+    html += '<div class="long-video-controls" id="controls-' + i + '">';
+    html += '<div class="controls-row">';
+    html += '<button class="control-btn play-btn" id="play-btn-' + i + '" onclick="togglePlayLV(' + i + ')">▶️</button>';
+    html += '<span class="time-display" id="ct-' + i + '">0:00</span>';
+    html += '<div class="progress-container" onclick="seekLV(' + i + ',event)">';
+    html += '<div class="progress-bar" id="pb-' + i + '"></div>';
+    html += '</div>';
+    html += '<span class="time-display" id="dur-' + i + '">0:00</span>';
+    html += '<button class="control-btn" onclick="toggleMuteLV(' + i + ')">🔊</button>';
+    html += '<button class="control-btn" id="spd-' + i + '" onclick="cycleSpeedLV(' + i + ')">1x</button>';
+    html += '<button class="control-btn" onclick="toggleFSLV(' + i + ')">⛶</button>';
+    html += '</div></div></div>';
+    html += '<div class="long-video-title">' + escapeHtml(v.title) + '</div>';
+    html += '<div class="long-video-meta">NDI Media &bull; ' + (v.category || 'Umum') + '</div>';
+    html += '</div>';
+    return html;
+}
+
+function initLVState(i) {
+    if (!longVideoStates[i]) {
+        longVideoStates[i] = {
+            player: null,
+            isPlaying: false,
+            isMuted: false,
+            volume: 50,
+            speed: 1,
+            duration: 0,
+            progressInterval: null,
+            controlsTimeout: null,
+            isFullscreen: false,
+            speeds: [0.5, 0.75, 1, 1.25, 1.5, 2],
+            speedIndex: 2
+        };
+    }
+    return longVideoStates[i];
+}
+
+function initLVPlayer(i) {
+    if (i < 0 || i >= longVideos.length) return;
+    
+    var state = initLVState(i);
+    var iframe = document.getElementById('iframe-' + i);
+    if (!iframe || state.player) return;
+    
+    state.player = new YT.Player(iframe, {
+        events: {
+            onReady: function(event) {
+                event.target.setVolume(state.volume);
+                if (state.isMuted) event.target.mute();
+                event.target.setPlaybackRate(state.speed);
+                
+                state.duration = event.target.getDuration();
+                var durEl = document.getElementById('dur-' + i);
+                if (durEl) durEl.textContent = formatTime(state.duration);
+                
+                setupBlockerEvents(i);
+                
+                if (currentTab === 'video' && i === currentLongIndex) {
+                    playLV(i);
+                }
+                
+                setupMidRollForVideo(i);
+            },
+            onStateChange: function(event) {
+                if (event.data === 1) {
+                    state.isPlaying = true;
+                    updateLVPlayBtn(i, true);
+                    startLVProgress(i);
+                } else if (event.data === 2) {
+                    state.isPlaying = false;
+                    updateLVPlayBtn(i, false);
+                    stopLVProgress(i);
+                } else if (event.data === 0) {
+                    state.isPlaying = false;
+                    updateLVPlayBtn(i, false);
+                    stopLVProgress(i);
+                    
+                    if (currentLongIndex < longVideos.length - 1) {
+                        setTimeout(function() {
+                            var container = document.getElementById('longVideoContainer');
+                            if (container) {
+                                container.scrollTo({
+                                    top: (currentLongIndex + 1) * container.clientHeight,
+                                    behavior: 'smooth'
+                                });
+                            }
+                        }, 2000);
+                    }
+                }
+            }
+        }
+    });
+}
+
+function setupBlockerEvents(i) {
+    var blocker = document.getElementById('blocker-' + i);
+    if (!blocker) return;
+    
+    var tapCount = 0;
+    var tapTimer = null;
+    
+    blocker.addEventListener('click', function(e) {
+        tapCount++;
+        clearTimeout(tapTimer);
+        
+        if (tapCount === 1) {
+            tapTimer = setTimeout(function() {
+                togglePlayLV(i);
+                showLVControls(i);
+                tapCount = 0;
+            }, 300);
+        } else if (tapCount === 2) {
+            clearTimeout(tapTimer);
+            var rect = blocker.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            
+            if (x > rect.width / 2) {
+                skipLV(i, 10);
+            } else {
+                skipLV(i, -10);
+            }
+            tapCount = 0;
+        }
+    });
+}
+
+function togglePlayLV(i) {
+    var state = initLVState(i);
+    if (!state.player) return;
+    
+    var playerState = state.player.getPlayerState();
+    if (playerState === 1) {
+        state.player.pauseVideo();
+        state.isPlaying = false;
+        updateLVPlayBtn(i, false);
+    } else {
+        state.player.playVideo();
+        state.isPlaying = true;
+        updateLVPlayBtn(i, true);
+    }
+}
+
+function playLV(i) {
+    var state = initLVState(i);
+    if (!state.player) return;
+    
+    state.player.playVideo();
+    state.isPlaying = true;
+    updateLVPlayBtn(i, true);
+    startLVProgress(i);
+}
+
+function pauseLV(i) {
+    var state = initLVState(i);
+    if (!state.player) return;
+    
+    state.player.pauseVideo();
+    state.isPlaying = false;
+    updateLVPlayBtn(i, false);
+    stopLVProgress(i);
+}
+
+function updateLVPlayBtn(i, isPlaying) {
+    var btn = document.getElementById('play-btn-' + i);
+    if (btn) btn.innerHTML = isPlaying ? '⏸️' : '▶️';
+}
+
+function startLVProgress(i) {
+    stopLVProgress(i);
+    var state = initLVState(i);
+    
+    state.progressInterval = setInterval(function() {
+        if (state.player && state.player.getCurrentTime) {
+            var currentTime = state.player.getCurrentTime();
+            var duration = state.player.getDuration();
+            
+            if (duration > 0) {
+                var progress = (currentTime / duration) * 100;
+                var progressBar = document.getElementById('pb-' + i);
+                var currentTimeEl = document.getElementById('ct-' + i);
+                
+                if (progressBar) progressBar.style.width = progress + '%';
+                if (currentTimeEl) currentTimeEl.textContent = formatTime(currentTime);
+            }
+        }
+    }, 1000);
+}
+
+function stopLVProgress(i) {
+    var state = initLVState(i);
+    if (state.progressInterval) {
+        clearInterval(state.progressInterval);
+        state.progressInterval = null;
+    }
+}
+
+function seekLV(i, event) {
+    var state = initLVState(i);
+    if (!state.player || !state.duration) return;
+    
+    var progressContainer = document.querySelector('#pc-' + i + ' .progress-container');
+    if (!progressContainer) return;
+    
+    var rect = progressContainer.getBoundingClientRect();
+    var percentage = (event.clientX - rect.left) / rect.width;
+    var seekTime = percentage * state.duration;
+    
+    state.player.seekTo(seekTime, true);
+}
+
+function skipLV(i, seconds) {
+    var state = initLVState(i);
+    if (!state.player) return;
+    
+    var currentTime = state.player.getCurrentTime();
+    var newTime = Math.max(0, currentTime + seconds);
+    state.player.seekTo(newTime, true);
+}
+
+function toggleMuteLV(i) {
+    var state = initLVState(i);
+    if (!state.player) return;
+    
+    if (state.isMuted) {
+        state.player.unMute();
+        state.isMuted = false;
+    } else {
+        state.player.mute();
+        state.isMuted = true;
+    }
+}
+
+function cycleSpeedLV(i) {
+    var state = initLVState(i);
+    state.speedIndex = (state.speedIndex + 1) % state.speeds.length;
+    state.speed = state.speeds[state.speedIndex];
+    
+    if (state.player) {
+        state.player.setPlaybackRate(state.speed);
+    }
+    
+    var speedBtn = document.getElementById('spd-' + i);
+    if (speedBtn) speedBtn.textContent = state.speed + 'x';
+}
+
+function toggleFSLV(i) {
+    var container = document.getElementById('pc-' + i);
+    if (!container) return;
+    
+    var state = initLVState(i);
+    
+    if (!document.fullscreenElement) {
+        if (container.requestFullscreen) {
+            container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+        }
+        state.isFullscreen = true;
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+        state.isFullscreen = false;
+    }
+}
+
+function showLVControls(i) {
+    var controls = document.getElementById('controls-' + i);
+    if (!controls) return;
+    
+    controls.classList.add('visible');
+    
+    var state = initLVState(i);
+    clearTimeout(state.controlsTimeout);
+    
+    state.controlsTimeout = setTimeout(function() {
+        controls.classList.remove('visible');
+    }, 3000);
+}
+
+function playCurrentLongVideo() {
+    if (currentTab !== 'video' || currentLongIndex < 0 || currentLongIndex >= longVideos.length) return;
+    
+    var state = initLVState(currentLongIndex);
+    if (state.player && state.player.playVideo) {
+        state.player.playVideo();
+    } else {
+        initLVPlayer(currentLongIndex);
+    }
+}
+
+function pauseAllLongVideos() {
+    for (var key in longVideoPlayers) {
+        try { longVideoPlayers[key].pauseVideo(); } catch (e) {}
+    }
+    
+    for (var key in longVideoStates) {
+        var state = longVideoStates[key];
+        if (state) {
+            state.isPlaying = false;
+            updateLVPlayBtn(parseInt(key), false);
+            stopLVProgress(parseInt(key));
+        }
+    }
+}
+
+async function loadLongVideos() {
+    try {
+        var snap = await db.collection('videos').where('videoType', '==', 'long').get();
+        
+        longVideos = [];
+        snap.forEach(function(doc) {
+            longVideos.push({
+                id: doc.id,
+                videoId: doc.data().videoId,
+                title: doc.data().title,
+                duration: doc.data().duration || 0,
+                category: doc.data().category || 'umum',
+                thumbnail: doc.data().thumbnail || '',
+                description: doc.data().description || ''
+            });
+        });
+        
+        longVideos.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        
+        var emptyItem = document.getElementById('emptyLongVideoItem');
+        
+        if (longVideos.length === 0) {
+            if (!emptyItem) {
+                emptyItem = document.createElement('div');
+                emptyItem.className = 'long-video-item';
+                emptyItem.id = 'emptyLongVideoItem';
+                emptyItem.innerHTML = '<div class="empty-video-message"><h2>📺 Belum Ada Video</h2><p>Admin belum menambahkan video panjang.</p></div>';
+                document.getElementById('longVideoContainer').appendChild(emptyItem);
+            }
+            emptyItem.style.display = 'flex';
+        } else {
+            if (emptyItem) emptyItem.style.display = 'none';
+            renderLongVideos();
+        }
+    } catch (e) {
+        console.error('Load long videos error:', e);
+    }
+}
+
+function renderLongVideos() {
+    var container = document.getElementById('longVideoContainer');
+    var html = '';
+    
+    longVideos.forEach(function(video, index) {
+        html += createLongHTML(video, index);
+    });
+    
+    html += '<div class="long-video-item" id="emptyLongVideoItem" style="display:none;">';
+    html += '<div class="empty-video-message"><h2>📺 Belum Ada Video</h2><p>Admin belum menambahkan video panjang.</p></div>';
+    html += '</div>';
+    
+    container.innerHTML = html;
+    initLVScroll();
+    
+    setTimeout(function() {
+        initLVPlayer(0);
+        if (currentTab === 'video') {
+            playLV(0);
+        }
+    }, 500);
+}
+
+function initLVScroll() {
+    var container = document.getElementById('longVideoContainer');
+    
+    container.addEventListener('scroll', function() {
+        var height = container.clientHeight;
+        var scrollTop = container.scrollTop;
+        var newIndex = Math.round(scrollTop / height);
+        
+        if (newIndex !== currentLongIndex && newIndex >= 0 && newIndex < longVideos.length) {
+            if (midRollTimers[currentLongIndex]) {
+                clearTimeout(midRollTimers[currentLongIndex]);
+                midRollTimers[currentLongIndex] = null;
+                closeMidRollAd(currentLongIndex);
+            }
+            
+            pauseLV(currentLongIndex);
+            currentLongIndex = newIndex;
+            initLVPlayer(currentLongIndex);
+            
+            setTimeout(function() {
+                playLV(currentLongIndex);
+            }, 300);
+        }
+    });
+}
+</script>
+
+
+
+
+<script>
+// ============================================
+// PROGRESS CIRCLE (SHORTS)
+// ============================================
+function initProgressCircle() {
+    var fill = document.getElementById('progressCircleFill');
+    if (fill) {
+        fill.style.strokeDasharray = CIRCLE_CIRCUMFERENCE;
+        fill.style.strokeDashoffset = '0';
+        console.log('✅ Progress circle shorts diinisialisasi');
+    } else {
+        console.error('❌ progressCircleFill TIDAK DITEMUKAN!');
+    }
+}
+
+function updateProgressCircle(percentage) {
+    var fill = document.getElementById('progressCircleFill');
+    if (fill) {
+        var offset = CIRCLE_CIRCUMFERENCE - (percentage / 100) * CIRCLE_CIRCUMFERENCE;
+        fill.style.strokeDashoffset = offset;
+    }
+}
+
+function stopProgressCircle() {
+    if (progressCircleInterval) {
+        clearInterval(progressCircleInterval);
+        progressCircleInterval = null;
+    }
+}
+
+function startProgressCircle() {
+    if (isWaitingForLink || isShowingAd || isAntiAdsActive()) return;
+    if (currentTab !== 'reels') return;
+    
+    stopProgressCircle();
+    progressCircleTimeLeft = progressCircleTotalTime;
+    updateProgressCircle(0);
+    
+    var container = document.getElementById('progressCircleContainer');
+    if (!container) return;
+    
+    container.classList.add('active');
+    container.style.display = 'block';
+    container.style.opacity = '1';
+    
+    var fillEl = document.getElementById('progressCircleFill');
+    var textEl = document.getElementById('progressCircleText');
+    
+    if (fillEl) fillEl.style.stroke = '#ffd700';
+    if (textEl) {
+        textEl.style.color = '#ffd700';
+        textEl.textContent = '🎁';
+    }
+    
+    progressCircleInterval = setInterval(function() {
+        progressCircleTimeLeft--;
+        var percentage = ((progressCircleTotalTime - progressCircleTimeLeft) / progressCircleTotalTime) * 100;
+        updateProgressCircle(percentage);
+        
+        if (textEl) {
+            if (progressCircleTimeLeft <= 10) {
+                textEl.textContent = progressCircleTimeLeft;
+                textEl.style.color = '#ff4444';
+                if (fillEl) fillEl.style.stroke = '#ff4444';
+            }
+        }
+        
+        if (progressCircleTimeLeft <= 0) {
+            stopProgressCircle();
+            if (container) container.classList.remove('active');
+            
+            if (!popupActive && !isWaitingForLink && claimLinks.length > 0 && !isAntiAdsActive()) {
+                triggerRewardPopup();
+            }
+            
+            setTimeout(function() {
+                if (currentTab === 'reels' && !isWaitingForLink && !isShowingAd) {
+                    startProgressCircle();
+                }
+            }, 3000);
+        }
+    }, 1000);
+}
+
+function triggerRewardPopup() {
+    if (popupActive || isWaitingForLink || claimLinks.length === 0) return;
+    if (isAntiAdsActive()) return;
+    
+    popupActive = true;
+    
+    var randomLink = claimLinks[Math.floor(Math.random() * claimLinks.length)];
+    claimRewardCoins = randomLink.coins || 50;
+    claimRewardUrl = randomLink.url || '';
+    
+    var overlay = document.createElement('div');
+    overlay.className = 'reward-popup-overlay';
+    overlay.id = 'rewardPopupOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    
+    overlay.innerHTML = '<div class="reward-popup-box">' +
+        '<div class="reward-icon">🎁</div>' +
+        '<div class="reward-text">+' + claimRewardCoins + ' COIN!</div>' +
+        '<div class="reward-subtext" style="color:#ccc;font-size:14px;margin-bottom:20px;">Mohon tunggu...</div>' +
+        '<div class="countdown-bar"><div class="countdown-fill"></div></div>' +
+        '<div class="timer-number" id="popupTimer">4</div>' +
+        '<div class="skip-blocked-text" style="color:#f44;font-size:11px;margin-top:10px;">wajib bertahan di link 10 detik</div>' +
+        '</div>';
+    
+    document.body.appendChild(overlay);
+    
+    var countdown = 4;
+    var countdownInterval = setInterval(function() {
+        countdown--;
+        var timerEl = overlay.querySelector('#popupTimer');
+        if (timerEl) timerEl.textContent = countdown;
+        
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+                popupActive = false;
+                
+                if (claimRewardUrl) {
+                    openLinkAndStartBackgroundTimer();
+                } else {
+                    grantRewardDirectly();
+                }
+            }
+        }
+    }, 1000);
+}
+
+function openLinkAndStartBackgroundTimer() {
+    isWaitingForLink = true;
+    linkTimeLeft = 10;
+    claimStartTime = Date.now();
+    
+    stopProgressCircle();
+    var container = document.getElementById('progressCircleContainer');
+    if (container) container.classList.remove('active');
+    
+    showLinkTimerBadge();
+    showCenterNotification('⏱️ Jangan tutup halaman!');
+    
+    claimWindowRef = window.open(claimRewardUrl, '_blank');
+    
+    linkTimerInterval = setInterval(function() {
+        linkTimeLeft--;
+        updateLinkTimerBadge();
+        
+        var elapsedSeconds = Math.floor((Date.now() - claimStartTime) / 1000);
+        
+        if (claimWindowRef && claimWindowRef.closed) {
+            clearInterval(linkTimerInterval);
+            linkTimerInterval = null;
+            hideLinkTimerBadge();
+            isWaitingForLink = false;
+            showRewardFailed('Link ditutup! Coin hangus.');
+            return;
+        }
+        
+        if (linkTimeLeft <= 0 || elapsedSeconds >= 45) {
+            clearInterval(linkTimerInterval);
+            linkTimerInterval = null;
+            hideLinkTimerBadge();
+            isWaitingForLink = false;
+            
+            if (claimWindowRef && !claimWindowRef.closed) {
+                grantRewardSuccess();
+            } else {
+                showRewardFailed('Link ditutup!');
+            }
+        }
+    }, 1000);
+    
+    setTimeout(function() {
+        if (isWaitingForLink) {
+            clearInterval(linkTimerInterval);
+            linkTimerInterval = null;
+            hideLinkTimerBadge();
+            isWaitingForLink = false;
+            showRewardFailed('Waktu habis!');
+        }
+    }, 120000);
+}
+
+function showLinkTimerBadge() {
+    var badge = document.getElementById('linkTimerBadge');
+    if (badge) {
+        badge.style.display = 'flex';
+        document.getElementById('badgeTimer').textContent = linkTimeLeft;
+    }
+}
+
+function updateLinkTimerBadge() {
+    var badgeTimer = document.getElementById('badgeTimer');
+    if (badgeTimer) badgeTimer.textContent = linkTimeLeft;
+}
+
+function hideLinkTimerBadge() {
+    var badge = document.getElementById('linkTimerBadge');
+    if (badge) badge.style.display = 'none';
+}
+
+async function grantRewardDirectly() {
+    await addUserCoins(claimRewardCoins);
+    showNotification('🎁 +' + claimRewardCoins + ' Coin!', 'success');
+    playCoinSound();
+    
+    if (currentTab === 'reels' && !isWaitingForLink && !isShowingAd) {
+        startProgressCircle();
+    }
+}
+
+async function grantRewardSuccess() {
+    await addUserCoins(claimRewardCoins);
+    showNotification('🎁 +' + claimRewardCoins + ' Coin!', 'success');
+    playCoinSound();
+    
+    var successPopup = document.createElement('div');
+    successPopup.className = 'claim-success-popup';
+    successPopup.id = 'claimSuccessPopup';
+    successPopup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10002;display:flex;align-items:center;justify-content:center;';
+    successPopup.innerHTML = '<div class="claim-success-box" style="background:#1a1a1a;border:2px solid rgba(0,255,100,0.6);border-radius:25px;padding:30px;text-align:center;max-width:320px;">' +
+        '<div style="font-size:60px;">✅</div>' +
+        '<div style="color:#0f6;font-size:24px;font-weight:800;">+' + claimRewardCoins + ' COIN!</div>' +
+        '<p style="color:#ccc;">10 detik tercapai!</p></div>';
+    
+    document.body.appendChild(successPopup);
+    
+    setTimeout(function() {
+        if (document.body.contains(successPopup)) {
+            document.body.removeChild(successPopup);
+        }
+        if (currentTab === 'reels' && !isWaitingForLink) {
+            startProgressCircle();
+        }
+    }, 2000);
+}
+
+function showRewardFailed(reason) {
+    var failedPopup = document.createElement('div');
+    failedPopup.className = 'claim-failed-popup';
+    failedPopup.id = 'claimFailedPopup';
+    failedPopup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10002;display:flex;align-items:center;justify-content:center;';
+    failedPopup.innerHTML = '<div class="claim-failed-box">' +
+        '<div style="font-size:70px;">❌</div>' +
+        '<div class="claim-failed-text">COIN HANGUS!</div>' +
+        '<p style="color:#ccc;">' + reason + '</p>' +
+        '<button class="claim-failed-btn" onclick="closeClaimFailed()">😞 MENGERTI</button></div>';
+    
+    document.body.appendChild(failedPopup);
+    showNotification('❌ ' + reason, 'error');
+    playErrorSound();
+}
+
+function closeClaimFailed() {
+    var popup = document.getElementById('claimFailedPopup');
+    if (popup) popup.remove();
+    
+    if (currentTab === 'reels' && !isWaitingForLink && !isShowingAd) {
+        startProgressCircle();
+    }
+}
+
+// ============================================
+// LONG VIDEO PROGRESS CIRCLE
+// ============================================
+function initLVProgressCircle() {
+    var fill = document.getElementById('longVideoProgressFill');
+    if (fill) {
+        fill.style.strokeDasharray = longVideoProgressState.CIRCUMFERENCE;
+        fill.style.strokeDashoffset = '0';
+        console.log('✅ Progress circle long video diinisialisasi');
+    }
+}
+
+function updateLVProgressCircle(percentage) {
+    var fill = document.getElementById('longVideoProgressFill');
+    if (fill) {
+        var offset = longVideoProgressState.CIRCUMFERENCE - (percentage / 100) * longVideoProgressState.CIRCUMFERENCE;
+        fill.style.strokeDashoffset = offset;
+    }
+}
+
+function startLVProgressCircle() {
+    if (longVideoProgressState.isWaitingForLink || isMidRollShowing || isAntiAdsActive()) return;
+    if (currentTab !== 'video') return;
+    
+    stopLVProgressCircle();
+    longVideoProgressState.timeLeft = longVideoProgressState.totalTime;
+    longVideoProgressState.isActive = true;
+    
+    updateLVProgressCircle(0);
+    
+    var circleContainer = document.getElementById('longVideoProgressCircle');
+    if (circleContainer) {
+        circleContainer.classList.add('active');
+        circleContainer.style.opacity = '1';
+    }
+    
+    var fillEl = document.getElementById('longVideoProgressFill');
+    var textEl = document.getElementById('longVideoProgressText');
+    
+    if (fillEl) fillEl.style.stroke = '#ffd700';
+    if (textEl) {
+        textEl.style.color = '#ffd700';
+        textEl.textContent = '🎁';
+    }
+    
+    longVideoProgressState.interval = setInterval(function() {
+        longVideoProgressState.timeLeft--;
+        var percentage = ((longVideoProgressState.totalTime - longVideoProgressState.timeLeft) / longVideoProgressState.totalTime) * 100;
+        updateLVProgressCircle(percentage);
+        
+        if (textEl) {
+            if (longVideoProgressState.timeLeft <= 10) {
+                textEl.textContent = longVideoProgressState.timeLeft;
+                textEl.style.color = '#ff4444';
+                if (fillEl) fillEl.style.stroke = '#ff4444';
+            }
+        }
+        
+        if (longVideoProgressState.timeLeft <= 0) {
+            stopLVProgressCircle();
+            
+            if (!longVideoProgressState.isWaitingForLink && claimLinks.length > 0 && !isAntiAdsActive()) {
+                triggerLVReward();
+            }
+            
+            setTimeout(function() {
+                if (currentTab === 'video' && !longVideoProgressState.isWaitingForLink && !isMidRollShowing) {
+                    startLVProgressCircle();
+                }
+            }, 3000);
+        }
+    }, 1000);
+}
+
+function stopLVProgressCircle() {
+    if (longVideoProgressState.interval) {
+        clearInterval(longVideoProgressState.interval);
+        longVideoProgressState.interval = null;
+    }
+    longVideoProgressState.isActive = false;
+    
+    var circleContainer = document.getElementById('longVideoProgressCircle');
+    if (circleContainer) circleContainer.classList.remove('active');
+}
+
+function handleLongVideoProgressClick() {
+    if (longVideoProgressState.isWaitingForLink || isMidRollShowing) return;
+    
+    stopLVProgressCircle();
+    
+    if (claimLinks.length > 0 && !isAntiAdsActive()) {
+        triggerLVReward();
+    } else {
+        showNotification('⏳ Tunggu progress circle penuh!', 'error');
+        if (currentTab === 'video' && !isMidRollShowing) {
+            startLVProgressCircle();
+        }
+    }
+}
+
+function triggerLVReward() {
+    if (longVideoProgressState.isWaitingForLink || claimLinks.length === 0) return;
+    
+    var randomLink = claimLinks[Math.floor(Math.random() * claimLinks.length)];
+    longVideoProgressState.claimRewardCoins = randomLink.coins || 50;
+    longVideoProgressState.claimRewardUrl = randomLink.url || '';
+    
+    var popup = document.createElement('div');
+    popup.className = 'reward-popup-overlay';
+    popup.id = 'longVideoRewardPopup';
+    popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    
+    popup.innerHTML = '<div class="reward-popup-box">' +
+        '<div class="reward-icon">🎁</div>' +
+        '<div class="reward-text">+' + longVideoProgressState.claimRewardCoins + ' COIN!</div>' +
+        '<div class="countdown-bar"><div class="countdown-fill"></div></div>' +
+        '<div class="timer-number" id="longPopupTimer">3</div>' +
+        '<div style="color:#f44;font-size:11px;margin-top:10px;">wajib bertahan di link 10 detik</div></div>';
+    
+    document.body.appendChild(popup);
+    
+    var countdown = 3;
+    var countdownInterval = setInterval(function() {
+        countdown--;
+        var timerEl = popup.querySelector('#longPopupTimer');
+        if (timerEl) timerEl.textContent = countdown;
+        
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            
+            if (document.body.contains(popup)) {
+                document.body.removeChild(popup);
+                
+                if (longVideoProgressState.claimRewardUrl) {
+                    openLVLinkTimer();
+                } else {
+                    grantLVRewardDirectly();
+                }
+            }
+        }
+    }, 1000);
+}
+
+function openLVLinkTimer() {
+    longVideoProgressState.isWaitingForLink = true;
+    longVideoProgressState.linkTimeLeft = 10;
+    
+    stopLVProgressCircle();
+    
+    var circleContainer = document.getElementById('longVideoProgressCircle');
+    if (circleContainer) circleContainer.style.opacity = '0';
+    
+    var timerBadge = document.getElementById('longVideoTimerBadge');
+    if (timerBadge) {
+        timerBadge.style.display = 'flex';
+        document.getElementById('longBadgeTimer').textContent = longVideoProgressState.linkTimeLeft;
+    }
+    
+    showCenterNotification('⏱️ Jangan tutup halaman!');
+    
+    var claimWindow = window.open(longVideoProgressState.claimRewardUrl, '_blank');
+    
+    longVideoProgressState.linkTimerInterval = setInterval(function() {
+        longVideoProgressState.linkTimeLeft--;
+        
+        var badgeTimer = document.getElementById('longBadgeTimer');
+        if (badgeTimer) badgeTimer.textContent = longVideoProgressState.linkTimeLeft;
+        
+        if (claimWindow && claimWindow.closed) {
+            clearInterval(longVideoProgressState.linkTimerInterval);
+            longVideoProgressState.linkTimerInterval = null;
+            hideLVBadge();
+            longVideoProgressState.isWaitingForLink = false;
+            showRewardFailed('Link ditutup! Coin hangus.');
+            return;
+        }
+        
+        if (longVideoProgressState.linkTimeLeft <= 0) {
+            clearInterval(longVideoProgressState.linkTimerInterval);
+            longVideoProgressState.linkTimerInterval = null;
+            hideLVBadge();
+            longVideoProgressState.isWaitingForLink = false;
+            
+            if (claimWindow && !claimWindow.closed) {
+                grantLVRewardSuccess();
+            } else {
+                showRewardFailed('Link ditutup!');
+            }
+        }
+    }, 1000);
+    
+    setTimeout(function() {
+        if (longVideoProgressState.isWaitingForLink) {
+            clearInterval(longVideoProgressState.linkTimerInterval);
+            longVideoProgressState.linkTimerInterval = null;
+            hideLVBadge();
+            longVideoProgressState.isWaitingForLink = false;
+            showRewardFailed('Waktu habis!');
+        }
+    }, 120000);
+}
+
+function hideLVBadge() {
+    var badge = document.getElementById('longVideoTimerBadge');
+    if (badge) badge.style.display = 'none';
+}
+
+async function grantLVRewardDirectly() {
+    await addUserCoins(longVideoProgressState.claimRewardCoins);
+    showNotification('🎁 +' + longVideoProgressState.claimRewardCoins + ' Coin!', 'success');
+    playCoinSound();
+    
+    if (currentTab === 'video' && !isMidRollShowing) {
+        startLVProgressCircle();
+    }
+}
+
+async function grantLVRewardSuccess() {
+    await addUserCoins(longVideoProgressState.claimRewardCoins);
+    showNotification('🎁 +' + longVideoProgressState.claimRewardCoins + ' Coin!', 'success');
+    playCoinSound();
+    
+    var successPopup = document.createElement('div');
+    successPopup.className = 'claim-success-popup';
+    successPopup.id = 'longClaimSuccessPopup';
+    successPopup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10002;display:flex;align-items:center;justify-content:center;';
+    successPopup.innerHTML = '<div class="claim-success-box" style="background:#1a1a1a;border:2px solid rgba(0,255,100,0.6);border-radius:25px;padding:30px;text-align:center;max-width:320px;">' +
+        '<div style="font-size:60px;">✅</div>' +
+        '<div style="color:#0f6;font-size:24px;font-weight:800;">+' + longVideoProgressState.claimRewardCoins + ' COIN!</div>' +
+        '<p style="color:#ccc;">10 detik tercapai!</p></div>';
+    
+    document.body.appendChild(successPopup);
+    
+    setTimeout(function() {
+        if (document.body.contains(successPopup)) {
+            document.body.removeChild(successPopup);
+        }
+        if (currentTab === 'video' && !isMidRollShowing) {
+            startLVProgressCircle();
+        }
+    }, 2000);
+}
+
+// ============================================
+// MID-ROLL ADS (IKLAN DI VIDEO PANJANG)
+// ============================================
+async function loadActiveMidRollAds() {
+    try {
+        var snap = await db.collection('midRollAds')
+            .where('isActive', '==', true)
+            .where('videoType', '==', 'long')
+            .get();
+        
+        activeMidRollAds = [];
+        snap.forEach(function(doc) {
+            activeMidRollAds.push({
+                id: doc.id,
+                title: doc.data().title || 'Iklan',
+                duration: doc.data().duration || 5,
+                imageUrl: doc.data().imageUrl || '',
+                linkUrl: doc.data().linkUrl || '',
+                placement: doc.data().placement || 'random',
+                customPosition: doc.data().customPosition || 0,
+                probability: doc.data().probability || 50,
+                skippable: doc.data().skippable !== false
+            });
+        });
+        
+        console.log('📢 Mid-roll ads loaded: ' + activeMidRollAds.length);
+    } catch (e) {
+        console.error('Mid-roll load error:', e);
+        activeMidRollAds = [];
+    }
+}
+
+function setupMidRollForVideo(videoIndex) {
+    if (midRollTimers[videoIndex]) {
+        clearTimeout(midRollTimers[videoIndex]);
+        midRollTimers[videoIndex] = null;
+    }
+    
+    midRollShown[videoIndex] = false;
+    
+    var state = longVideoStates[videoIndex];
+    if (!state || !state.duration || state.duration < 30) return;
+    
+    var eligibleAds = activeMidRollAds.filter(function(ad) {
+        return Math.random() * 100 <= (ad.probability || 50);
+    });
+    
+    if (eligibleAds.length === 0) return;
+    
+    var selectedAd = eligibleAds[Math.floor(Math.random() * eligibleAds.length)];
+    var position = state.duration * 0.5;
+    
+    switch (selectedAd.placement) {
+        case 'beginning': position = state.duration * 0.1; break;
+        case 'end': position = state.duration * 0.8; break;
+        case 'custom': position = selectedAd.customPosition || state.duration * 0.5; break;
+        default: position = state.duration * (0.15 + Math.random() * 0.7); break;
+    }
+    
+    midRollTimers[videoIndex] = setTimeout(function() {
+        showMidRollAd(videoIndex, selectedAd);
+    }, position * 1000);
+}
+
+function showMidRollAd(videoIndex, ad) {
+    if (midRollShown[videoIndex]) return;
+    if (isAntiAdsActive()) return;
+    
+    midRollShown[videoIndex] = true;
+    isMidRollShowing = true;
+    
+    var state = longVideoStates[videoIndex];
+    if (state && state.player) {
+        state.player.pauseVideo();
+        state.isPlaying = false;
+    }
+    
+    var playerContainer = document.getElementById('pc-' + videoIndex);
+    if (!playerContainer) { isMidRollShowing = false; return; }
+    
+    var overlay = document.createElement('div');
+    overlay.className = 'midroll-ad-overlay';
+    overlay.id = 'midroll-overlay-' + videoIndex;
+    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:#000;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+    
+    var adContent = '';
+    if (ad.imageUrl) {
+        adContent += '<img src="' + ad.imageUrl + '" style="max-width:90%;max-height:55%;object-fit:contain;margin-bottom:15px;">';
+    }
+    
+    adContent += '<div style="color:#fff;padding:20px;text-align:center;">';
+    adContent += '<h3 style="font-size:20px;margin-bottom:10px;">' + escapeHtml(ad.title) + '</h3>';
+    
+    if (ad.linkUrl) {
+        adContent += '<button onclick="midRollAdClicked(\'' + ad.id + '\',\'' + ad.linkUrl + '\')" style="padding:12px 30px;background:#ffd700;color:#000;border:none;border-radius:20px;font-weight:700;cursor:pointer;font-size:14px;">🔗 Kunjungi</button>';
+    }
+    
+    adContent += '</div>';
+    
+    var remainingTime = ad.duration || 5;
+    
+    overlay.innerHTML = adContent +
+        '<div class="midroll-timer" id="midroll-timer-' + videoIndex + '">' + remainingTime + '</div>' +
+        (ad.skippable ? '<button class="midroll-skip" id="midroll-skip-' + videoIndex + '" onclick="skipMidRollAd(' + videoIndex + ')">Lewati ⏭️</button>' : '') +
+        '<div class="midroll-progress" style="position:absolute;bottom:0;left:0;height:3px;background:#ffd700;width:100%;"></div>';
+    
+    playerContainer.appendChild(overlay);
+    
+    var timerInterval = setInterval(function() {
+        remainingTime--;
+        
+        var timerEl = document.getElementById('midroll-timer-' + videoIndex);
+        if (timerEl) timerEl.textContent = remainingTime;
+        
+        if (ad.skippable && remainingTime <= ad.duration - 3) {
+            var skipBtn = document.getElementById('midroll-skip-' + videoIndex);
+            if (skipBtn) skipBtn.style.display = 'block';
+        }
+        
+        var progressBar = overlay.querySelector('.midroll-progress');
+        if (progressBar) progressBar.style.width = (remainingTime / ad.duration * 100) + '%';
+        
+        if (remainingTime <= 0) {
+            clearInterval(timerInterval);
+            closeMidRollAd(videoIndex);
+        }
+    }, 1000);
+    
+    overlay.setAttribute('data-timer', timerInterval);
+}
+
+function closeMidRollAd(videoIndex) {
+    var overlay = document.getElementById('midroll-overlay-' + videoIndex);
+    if (!overlay) return;
+    
+    var timerInterval = overlay.getAttribute('data-timer');
+    if (timerInterval) clearInterval(parseInt(timerInterval));
+    
+    overlay.remove();
+    isMidRollShowing = false;
+    
+    var state = longVideoStates[videoIndex];
+    if (state && state.player) {
+        state.player.playVideo();
+        state.isPlaying = true;
+    }
+    
+    if (Math.random() < 0.3) {
+        setTimeout(function() { setupMidRollForVideo(videoIndex); }, 60000);
+    }
+    
+    if (currentTab === 'video') startLVProgressCircle();
+}
+
+function skipMidRollAd(videoIndex) {
+    closeMidRollAd(videoIndex);
+    showNotification('⏭️ Iklan dilewati', 'success');
+}
+
+function midRollAdClicked(adId, linkUrl) {
+    if (currentUser) {
+        db.collection('midRollAdClicks').add({
+            adId: adId,
+            userId: currentUser.uid,
+            clickedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(e) {});
+    }
+    
+    if (linkUrl && linkUrl !== '#') {
+        window.open(linkUrl, '_blank');
+    }
+}
+</script>
+
+
+
+<script>
+// ============================================
+// ADVERTISEMENTS (IKLAN SELA SHORTS)
+// ============================================
+async function loadAdvertisements() {
+    try {
+        var snap = await db.collection('advertisements').where('isActive', '==', true).get();
+        advertisements = [];
+        snap.forEach(function(doc) {
+            advertisements.push({
+                id: doc.id,
+                title: doc.data().title || 'Iklan',
+                imageUrl: doc.data().imageUrl || '',
+                linkUrl: doc.data().linkUrl || '',
+                duration: doc.data().duration || 5
+            });
+        });
+        console.log('📢 Advertisements loaded:', advertisements.length);
+    } catch (e) {
+        console.error('Ads load error:', e);
+        advertisements = [];
+    }
+}
+
+function shouldShowAd() {
+    adIntervalCounter++;
+    if (adIntervalCounter >= AD_INTERVAL && advertisements.length > 0 && !isAntiAdsActive()) {
+        adIntervalCounter = 0;
+        return true;
+    }
+    return false;
+}
+
+function showAdvertisement() {
+    if (isShowingAd || advertisements.length === 0 || isAntiAdsActive()) return;
+    
+    isShowingAd = true;
+    pauseAllVideos();
+    stopProgressCircle();
+    
+    var ad = advertisements[Math.floor(Math.random() * advertisements.length)];
+    var duration = ad.duration || 5;
+    
+    var overlay = document.createElement('div');
+    overlay.className = 'ad-overlay';
+    overlay.id = 'adOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+    
+    var adContent = '';
+    if (ad.imageUrl) {
+        adContent += '<img src="' + ad.imageUrl + '" style="width:100%;height:100%;object-fit:contain;cursor:pointer;" onclick="adClicked(\'' + ad.id + '\',\'' + (ad.linkUrl || '#') + '\')">';
+    } else {
+        adContent += '<div style="display:flex;flex-direction:column;align-items:center;color:#fff;padding:40px;">';
+        adContent += '<h2 style="font-size:24px;margin-bottom:20px;">' + escapeHtml(ad.title) + '</h2>';
+        if (ad.linkUrl) {
+            adContent += '<button onclick="adClicked(\'' + ad.id + '\',\'' + ad.linkUrl + '\')" style="padding:15px 40px;background:#ffd700;color:#000;border:none;border-radius:25px;font-weight:700;font-size:16px;cursor:pointer;">🔗 Kunjungi</button>';
+        }
+        adContent += '</div>';
+    }
+    
+    overlay.innerHTML = adContent +
+        '<div class="ad-overlay-label" style="position:absolute;top:20px;left:20px;background:rgba(255,200,0,0.8);color:#000;padding:6px 14px;border-radius:15px;font-size:11px;font-weight:700;">📢 Iklan</div>' +
+        '<div class="ad-overlay-timer" id="adTimer" style="position:absolute;top:20px;right:20px;background:rgba(0,0,0,0.7);color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:700;">' + duration + '</div>' +
+        '<div class="ad-overlay-skip" id="adSkipBtn" style="position:absolute;bottom:30px;right:20px;background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:10px 20px;border-radius:20px;font-size:13px;cursor:pointer;display:none;" onclick="skipAdvertisement()">Lewati ⏭️</div>' +
+        '<div class="ad-progress-bar" id="adProgressBar" style="position:absolute;bottom:0;left:0;height:3px;background:#ffd700;width:100%;transition:width 0.1s linear;"></div>';
+    
+    document.body.appendChild(overlay);
+    
+    var timeLeft = duration;
+    
+    setTimeout(function() {
+        var skipBtn = document.getElementById('adSkipBtn');
+        if (skipBtn) skipBtn.style.display = 'block';
+    }, 3000);
+    
+    adTimerInterval = setInterval(function() {
+        timeLeft--;
+        var timerEl = document.getElementById('adTimer');
+        if (timerEl) timerEl.textContent = timeLeft;
+        
+        var progressBar = document.getElementById('adProgressBar');
+        if (progressBar) progressBar.style.width = (timeLeft / duration * 100) + '%';
+        
+        if (timeLeft <= 0) {
+            clearInterval(adTimerInterval);
+            adTimerInterval = null;
+            closeAdvertisement();
+        }
+    }, 1000);
+}
+
+function closeAdvertisement() {
+    if (adTimerInterval) {
+        clearInterval(adTimerInterval);
+        adTimerInterval = null;
+    }
+    
+    var overlay = document.getElementById('adOverlay');
+    if (overlay) overlay.remove();
+    
+    isShowingAd = false;
+    playCurrentVideo();
+    
+    if (currentTab === 'reels' && !isWaitingForLink && !popupActive) {
+        startProgressCircle();
+    }
+}
+
+function skipAdvertisement() {
+    closeAdvertisement();
+    showNotification('⏭️ Iklan dilewati', 'success');
+}
+
+function adClicked(adId, linkUrl) {
+    if (currentUser) {
+        db.collection('adClicks').add({
+            adId: adId,
+            userId: currentUser.uid,
+            clickedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(e) {});
+    }
+    if (linkUrl && linkUrl !== '#') {
+        window.open(linkUrl, '_blank');
+    }
+}
+
+// ============================================
+// ANTI-ADS SYSTEM
+// ============================================
+function openAntiAdsPopup() {
+    if (antiAdsActive) {
+        showNotification('✅ Iklan sudah dinonaktifkan!', 'success');
+        return;
+    }
+    
+    document.getElementById('antiAdsSaldoAmount').textContent = userCoins.toLocaleString();
+    document.getElementById('btnBuyAntiAds').disabled = true;
+    document.getElementById('btnBuyAntiAds').textContent = '🔒 Pilih Durasi';
+    selectedAntiAdsOption = null;
+    
+    ['antiAdsOption5', 'antiAdsOption10', 'antiAdsOption50', 'antiAdsOption60'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.style.border = '1px solid rgba(0,255,100,0.3)';
+            el.style.background = 'rgba(0,255,100,0.08)';
+        }
+    });
+    
+    document.getElementById('antiAdsPopupOverlay').style.display = 'flex';
+    pauseAllVideos();
+    stopProgressCircle();
+}
+
+function closeAntiAdsPopup() {
+    document.getElementById('antiAdsPopupOverlay').style.display = 'none';
+    selectedAntiAdsOption = null;
+    playCurrentVideo();
+    if (!isWaitingForLink && !popupActive && !isShowingAd) {
+        startProgressCircle();
+    }
+}
+
+function selectAntiAdsOption(option) {
+    selectedAntiAdsOption = option;
+    
+    ['antiAdsOption5', 'antiAdsOption10', 'antiAdsOption50', 'antiAdsOption60'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var matchId = 'antiAdsOption' + option.replace('min', '');
+        if (id === matchId) {
+            el.style.border = '2px solid #0f6';
+            el.style.background = 'rgba(0,255,100,0.2)';
+        } else {
+            el.style.border = '1px solid rgba(0,255,100,0.3)';
+            el.style.background = 'rgba(0,255,100,0.08)';
+        }
+    });
+    
+    document.getElementById('btnBuyAntiAds').disabled = false;
+    
+    var prices = { '5min': 1000, '10min': 10000, '50min': 100000, '60min': 1000000 };
+    var priceText = prices[option] ? prices[option].toLocaleString() : '0';
+    document.getElementById('btnBuyAntiAds').textContent = '✅ Beli (' + priceText + ' 🪙)';
+}
+
+async function buyAntiAds() {
+    if (!selectedAntiAdsOption) {
+        showNotification('❌ Pilih durasi terlebih dahulu!', 'error');
+        return;
+    }
+    
+    var cost = 0;
+    var durationMs = 0;
+    var label = '';
+    
+    switch (selectedAntiAdsOption) {
+        case '5min': cost = 1000; durationMs = 300000; label = '5 menit'; break;
+        case '10min': cost = 10000; durationMs = 600000; label = '10 menit'; break;
+        case '50min': cost = 100000; durationMs = 3000000; label = '50 menit'; break;
+        case '60min': cost = 1000000; durationMs = 3600000; label = '1 jam'; break;
+        default: showNotification('❌ Pilihan tidak valid!', 'error'); return;
+    }
+    
+    if (userCoins < cost) {
+        showNotification('❌ Saldo tidak cukup! Butuh ' + cost.toLocaleString() + ' 🪙', 'error');
+        return;
+    }
+    
+    if (!confirm('Beli bebas iklan ' + label + '?\n\nBiaya: ' + cost.toLocaleString() + ' 🪙\nSaldo: ' + userCoins.toLocaleString() + ' 🪙')) {
+        return;
+    }
+    
+    var btnBuy = document.getElementById('btnBuyAntiAds');
+    btnBuy.disabled = true;
+    btnBuy.textContent = '⏳ Memproses...';
+    
+    if (!(await deductUserCoins(cost))) {
+        btnBuy.disabled = false;
+        showNotification('❌ Gagal memproses!', 'error');
+        return;
+    }
+    
+    antiAdsActive = true;
+    antiAdsEndTime = Date.now() + durationMs;
+    
+    if (currentUser) {
+        try {
+            await db.collection('users').doc(currentUser.uid).update({
+                antiAdsActive: true,
+                antiAdsEndTime: antiAdsEndTime,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (e) {}
+    }
+    
+    localStorage.setItem('ndi_antiads_active', 'true');
+    localStorage.setItem('ndi_antiads_endtime', antiAdsEndTime.toString());
+    
+    closeAntiAdsPopup();
+    updateAntiAdsUI();
+    startAntiAdsTimer();
+    showNotification('✅ Bebas iklan ' + label + '!', 'success');
+    playCoinSound();
+}
+
+function startAntiAdsTimer() {
+    if (antiAdsTimerInterval) clearInterval(antiAdsTimerInterval);
+    if (!antiAdsActive) return;
+    
+    updateAntiAdsUI();
+    
+    antiAdsTimerInterval = setInterval(function() {
+        var remaining = antiAdsEndTime - Date.now();
+        
+        if (remaining <= 0) {
+            clearInterval(antiAdsTimerInterval);
+            antiAdsTimerInterval = null;
+            antiAdsActive = false;
+            antiAdsEndTime = null;
+            
+            if (currentUser) {
+                db.collection('users').doc(currentUser.uid).update({
+                    antiAdsActive: false,
+                    antiAdsEndTime: null,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(function(e) {});
+            }
+            
+            localStorage.removeItem('ndi_antiads_active');
+            localStorage.removeItem('ndi_antiads_endtime');
+            updateAntiAdsUI();
+            showCenterNotification('⏰ Masa bebas iklan telah habis!');
+            return;
+        }
+        
+        updateAntiAdsUI();
+    }, 1000);
+}
+
+function updateAntiAdsUI() {
+    var btn = document.getElementById('antiAdsBtn');
+    var text = document.getElementById('antiAdsBtnText');
+    if (!btn || !text) return;
+    
+    if (antiAdsActive && antiAdsEndTime) {
+        var remaining = Math.max(0, antiAdsEndTime - Date.now());
+        if (remaining > 0) {
+            var totalSeconds = Math.floor(remaining / 1000);
+            var hours = Math.floor(totalSeconds / 3600);
+            var minutes = Math.floor((totalSeconds % 3600) / 60);
+            var seconds = totalSeconds % 60;
+            
+            btn.classList.add('active');
+            
+            if (hours > 0) {
+                text.textContent = 'Bebas ' + hours + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+            } else if (minutes > 0) {
+                text.textContent = 'Bebas ' + minutes + ':' + seconds.toString().padStart(2, '0');
+            } else {
+                text.textContent = 'Bebas ' + seconds + 's';
+            }
+        } else {
+            btn.classList.remove('active');
+            text.textContent = 'Iklan';
+            antiAdsActive = false;
+        }
+    } else {
+        btn.classList.remove('active');
+        text.textContent = 'Iklan';
+    }
+}
+
+function isAntiAdsActive() {
+    return antiAdsActive && antiAdsEndTime && antiAdsEndTime > Date.now();
+}
+
+// ============================================
+// USER & COINS MANAGEMENT
+// ============================================
+function updateBalanceDisplay() {
+    var balanceEl = document.getElementById('balanceDisplay');
+    if (balanceEl) balanceEl.textContent = userCoins.toLocaleString() + ' 🪙';
+    updateHadiahBalance();
+}
+
+function updateHeaderName() {
+    var nameEl = document.getElementById('headerUserName');
+    if (nameEl) nameEl.textContent = userName || '';
+}
+
+function updateWithdrawUserCard() {
+    var avatarEl = document.getElementById('withdrawUserAvatar');
+    var nameEl = document.getElementById('withdrawUserNameDisplay');
+    var coinsEl = document.getElementById('withdrawUserCoins');
+    var rpEl = document.getElementById('withdrawUserRp');
+    
+    if (avatarEl) avatarEl.textContent = userName ? userName.charAt(0).toUpperCase() : '?';
+    if (nameEl) nameEl.textContent = userName || 'Nama User';
+    if (coinsEl) coinsEl.textContent = (userCoins || 0).toLocaleString() + ' 🪙';
+    if (rpEl) rpEl.textContent = 'Rp ' + Math.floor((userCoins || 0) / 100).toLocaleString();
+}
+
+async function addUserCoins(amount) {
+    userCoins += amount;
+    updateBalanceDisplay();
+    updateWithdrawUserCard();
+    playCoinSound();
+    await saveUserCoins();
+    lastProgressActivity = Date.now();
+}
+
+async function deductUserCoins(amount) {
+    if (userCoins < amount) return false;
+    userCoins -= amount;
+    updateBalanceDisplay();
+    updateWithdrawUserCard();
+    await saveUserCoins();
+    return true;
+}
+
+async function saveUserCoins() {
+    if (!currentUser) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).update({
+            coins: userCoins,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {}
+    localStorage.setItem('ndi_coins', userCoins.toString());
+}
+
+function showNameInputPopup() {
+    document.getElementById('nameInputPopup').style.display = 'flex';
+    setTimeout(function() {
+        document.getElementById('userNameInput').focus();
+    }, 300);
+}
+
+async function saveUserName() {
+    var nameInput = document.getElementById('userNameInput');
+    var name = nameInput.value.trim();
+    
+    if (!name) {
+        showNotification('❌ Masukkan nama Anda!', 'error');
+        return;
+    }
+    
+    userName = name;
+    updateHeaderName();
+    updateWithdrawUserCard();
+    
+    if (currentUser) {
+        try {
+            await db.collection('users').doc(currentUser.uid).update({
+                name: name,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (e) {}
+    }
+    
+    localStorage.setItem('ndi_username', name);
+    document.getElementById('nameInputPopup').style.display = 'none';
+    showNotification('✅ Selamat datang, ' + name + '!', 'success');
+}
+
+// ============================================
+// DAILY QUESTS
+// ============================================
+async function loadDailyQuests() {
+    var today = getToday();
+    if (!currentUser) {
+        dailyQuestData = JSON.parse(localStorage.getItem('ndi_quests_' + today) || '{}');
+        return;
+    }
+    
+    try {
+        var doc = await db.collection('dailyQuests').doc(currentUser.uid + '_' + today).get();
+        dailyQuestData = doc.exists ? (doc.data().progress || {}) : {};
+    } catch (e) {
+        dailyQuestData = JSON.parse(localStorage.getItem('ndi_quests_' + today) || '{}');
+    }
+}
+
+async function saveDailyQuests() {
+    var today = getToday();
+    localStorage.setItem('ndi_quests_' + today, JSON.stringify(dailyQuestData));
+    
+    if (currentUser) {
+        try {
+            await db.collection('dailyQuests').doc(currentUser.uid + '_' + today).set({
+                userId: currentUser.uid,
+                date: today,
+                progress: dailyQuestData,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (e) {}
+    }
+}
+
+function updateQuestProgress(questId, amount) {
+    amount = amount || 1;
+    if (!dailyQuestData[questId]) dailyQuestData[questId] = { count: 0, claimed: false };
+    dailyQuestData[questId].count += amount;
+    saveDailyQuests();
+}
+
+function getQuestProgress(questId) {
+    return dailyQuestData[questId] || { count: 0, claimed: false };
+}
+
+function showDailyQuest() {
+    var container = document.getElementById('questListContainer');
+    if (!container) return;
+    
+    var dateEl = document.getElementById('questDate');
+    if (dateEl) {
+        dateEl.textContent = '📅 ' + new Date().toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'long', year: 'numeric'
+        });
+    }
+    
+    var html = '';
+    DAILY_QUESTS.forEach(function(quest) {
+        var progress = getQuestProgress(quest.id);
+        var completed = progress.count >= quest.target;
+        var percentage = Math.min((progress.count / quest.target) * 100, 100);
+        
+        var buttonHtml = '';
+        if (progress.claimed) {
+            buttonHtml = '<button style="background:#0c6;color:#fff;border:none;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:default;white-space:nowrap;" disabled>✅ Diambil</button>';
+        } else if (completed) {
+            buttonHtml = '<button style="background:#fc0;color:#000;border:none;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;" onclick="claimQuestReward(\'' + quest.id + '\',' + quest.reward + ')">🪙 Klaim</button>';
+        } else {
+            buttonHtml = '<button style="background:#333;color:#666;border:none;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:default;white-space:nowrap;" disabled>🔒 ' + progress.count + '/' + quest.target + '</button>';
+        }
+        
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#111;border:1px solid #222;border-radius:12px;margin-bottom:8px;">';
+        html += '<span style="font-size:32px;flex-shrink:0;">' + quest.icon + '</span>';
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-weight:600;font-size:14px;color:#fff;margin-bottom:4px;">' + quest.title + '</div>';
+        html += '<div style="font-size:11px;color:#888;margin-bottom:6px;">Hadiah: +' + quest.reward + ' 🪙</div>';
+        html += '<div style="width:100%;height:4px;background:#333;border-radius:2px;overflow:hidden;">';
+        html += '<div style="height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);border-radius:2px;width:' + percentage + '%;"></div>';
+        html += '</div></div>' + buttonHtml + '</div>';
+    });
+    
+    container.innerHTML = html;
+    document.getElementById('dailyQuestPopup').style.display = 'flex';
+    pauseAllVideos();
+    stopProgressCircle();
+}
+
+async function claimQuestReward(questId, reward) {
+    var progress = getQuestProgress(questId);
+    var quest = DAILY_QUESTS.find(function(q) { return q.id === questId; });
+    if (!quest) return;
+    if (progress.claimed) { showNotification('❌ Hadiah sudah diklaim!', 'error'); return; }
+    if (progress.count < quest.target) { showNotification('❌ Belum mencapai target!', 'error'); return; }
+    
+    dailyQuestData[questId].claimed = true;
+    await saveDailyQuests();
+    await addUserCoins(reward);
+    
+    showNotification('🎯 Misi selesai! +' + reward + ' Coin', 'success');
+    playCoinSound();
+    showDailyQuest();
+}
+
+// ============================================
+// BADGES
+// ============================================
+function getUnlockedBadges() {
+    var unlocked = JSON.parse(localStorage.getItem('ndi_badges') || '[]');
+    var newUnlocked = false;
+    
+    ALL_BADGES.forEach(function(badge) {
+        if (!unlocked.includes(badge.id) && badge.check()) {
+            unlocked.push(badge.id);
+            newUnlocked = true;
+            showNotification('🏅 Badge baru: ' + badge.name + '!', 'success');
+            playCoinSound();
+        }
+    });
+    
+    if (newUnlocked) localStorage.setItem('ndi_badges', JSON.stringify(unlocked));
+    return unlocked;
+}
+
+function showBadges() {
+    var unlocked = getUnlockedBadges();
+    var container = document.getElementById('badgeListContainer');
+    if (!container) return;
+    
+    var html = '';
+    ALL_BADGES.forEach(function(badge) {
+        var isUnlocked = unlocked.includes(badge.id);
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#111;border-radius:12px;margin-bottom:8px;' +
+            (isUnlocked ? 'border:1px solid rgba(255,215,0,0.4);' : 'opacity:0.5;') + '">';
+        html += '<span style="font-size:32px;flex-shrink:0;">' + badge.icon + '</span>';
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-weight:600;font-size:14px;color:#fff;">' + badge.name + '</div>';
+        html += '<div style="font-size:11px;color:#888;">' + badge.desc + '</div></div>';
+        html += '<span style="font-size:18px;font-weight:700;">' + (isUnlocked ? '✅' : '🔒') + '</span></div>';
+    });
+    
+    container.innerHTML = html;
+    document.getElementById('badgePopup').style.display = 'flex';
+    pauseAllVideos();
+    stopProgressCircle();
+}
+
+// ============================================
+// SPIN WHEEL
+// ============================================
+function drawWheel(rotation) {
+    rotation = rotation || 0;
+    var canvas = document.getElementById('wheelCanvas');
+    if (!canvas) return;
+    
+    var ctx = canvas.getContext('2d');
+    var centerX = 100, centerY = 100, radius = 95;
+    var sliceAngle = (2 * Math.PI) / WHEEL_PRIZES.length;
+    
+    ctx.clearRect(0, 0, 200, 200);
+    
+    WHEEL_PRIZES.forEach(function(prize, index) {
+        var startAngle = index * sliceAngle + rotation;
+        var endAngle = startAngle + sliceAngle;
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = prize.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(prize.label, 60, 4);
+        ctx.restore();
+    });
+}
+
+function showSpinWheel() {
+    var today = getToday();
+    var alreadySpun = localStorage.getItem('ndi_spin_' + today);
+    
+    var spinInfo = document.getElementById('spinInfo');
+    var spinBtn = document.getElementById('spinBtn');
+    var spinResult = document.getElementById('spinResult');
+    
+    if (spinInfo) spinInfo.textContent = alreadySpun ? '💎 Spin lagi: 100 🪙' : '🎉 1x GRATIS hari ini!';
+    if (spinBtn) { spinBtn.textContent = alreadySpun ? '🎰 PUTAR (100 🪙)' : '🎰 PUTAR GRATIS'; spinBtn.disabled = false; }
+    if (spinResult) spinResult.textContent = '';
+    
+    drawWheel(0);
+    document.getElementById('spinPopup').style.display = 'flex';
+    pauseAllVideos();
+    stopProgressCircle();
+}
+
+function spinWheel() {
+    if (isSpinning) return;
+    
+    var today = getToday();
+    var alreadySpun = localStorage.getItem('ndi_spin_' + today);
+    
+    if (alreadySpun && userCoins < 100) { showNotification('❌ Saldo tidak cukup! Butuh 100 🪙', 'error'); return; }
+    if (alreadySpun) { if (!confirm('Putar lagi dengan biaya 100 🪙?\nSaldo: ' + userCoins.toLocaleString() + ' 🪙')) return; deductUserCoins(100); }
+    
+    isSpinning = true;
+    document.getElementById('spinBtn').disabled = true;
+    document.getElementById('spinResult').textContent = '🎰 Berputar...';
+    localStorage.setItem('ndi_spin_' + today, 'true');
+    
+    var totalSpins = Math.floor(Math.random() * 5) + 5;
+    var targetIndex = Math.floor(Math.random() * WHEEL_PRIZES.length);
+    var sliceAngle = 360 / WHEEL_PRIZES.length;
+    var finalRotation = totalSpins * 360 + targetIndex * sliceAngle;
+    var currentRotation = 0;
+    var startTime = Date.now();
+    var duration = 3000;
+    
+    var animation = setInterval(function() {
+        var elapsed = Date.now() - startTime;
+        var progress = Math.min(elapsed / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3);
+        currentRotation = finalRotation * eased;
+        drawWheel((currentRotation % 360) * (Math.PI / 180));
+        
+        if (progress >= 1) {
+            clearInterval(animation);
+            var prize = WHEEL_PRIZES[targetIndex];
+            setTimeout(async function() {
+                if (prize.value > 0) {
+                    await addUserCoins(prize.value);
+                    document.getElementById('spinResult').textContent = '🎉 Dapat: ' + prize.label + '!';
+                    playCoinSound();
+                } else {
+                    document.getElementById('spinResult').textContent = '😅 ZONK! Coba lagi nanti.';
+                }
+                isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+                document.getElementById('spinBtn').textContent = '🎰 PUTAR (100 🪙)';
+                document.getElementById('spinInfo').textContent = '💎 Spin lagi: 100 🪙';
+            }, 500);
+        }
+    }, 16);
+}
+
+// ============================================
+// LOOTBOX / BLIND BOX
+// ============================================
+function showLootbox() {
+    document.getElementById('lootboxResult').innerHTML = '<div style="font-size:60px;">🎁</div><p style="color:#aaa;">Kotak misteri siap dibuka!</p>';
+    document.getElementById('lootboxPopup').style.display = 'flex';
+    pauseAllVideos();
+    stopProgressCircle();
+}
+
+function openLootbox() {
+    if (userCoins < 500) { showNotification('❌ Butuh 500 🪙 untuk membuka!', 'error'); return; }
+    deductUserCoins(500);
+    
+    var resultContainer = document.getElementById('lootboxResult');
+    resultContainer.innerHTML = '<div style="font-size:60px;">🎰</div><p style="color:#fff;">Membuka kotak...</p>';
+    
+    setTimeout(function() {
+        var totalWeight = 0;
+        LOOTBOX_PRIZES.forEach(function(p) { totalWeight += p.weight; });
+        
+        var random = Math.random() * totalWeight;
+        var selectedPrize = LOOTBOX_PRIZES[0];
+        
+        for (var i = 0; i < LOOTBOX_PRIZES.length; i++) {
+            random -= LOOTBOX_PRIZES[i].weight;
+            if (random <= 0) { selectedPrize = LOOTBOX_PRIZES[i]; break; }
+        }
+        
+        var resultHtml = '';
+        if (selectedPrize.type === 'coin') {
+            addUserCoins(selectedPrize.value);
+            resultHtml = '<div style="font-size:60px;">🪙</div><h3 style="color:#ffd700;">' + selectedPrize.label + '</h3><p style="color:#0f6;">Selamat! Coin bertambah!</p>';
+        } else if (selectedPrize.type === 'badge') {
+            var badges = JSON.parse(localStorage.getItem('ndi_badges') || '[]');
+            badges.push(selectedPrize.badgeId);
+            localStorage.setItem('ndi_badges', JSON.stringify(badges));
+            resultHtml = '<div style="font-size:60px;">🏅</div><h3 style="color:#ffd700;">' + selectedPrize.label + '</h3><p style="color:#0f6;">Badge spesial!</p>';
+        } else {
+            resultHtml = '<div style="font-size:60px;">😅</div><h3 style="color:#f44;">ZONK!</h3><p style="color:#aaa;">Coba lagi nanti.</p>';
+        }
+        
+        resultContainer.innerHTML = resultHtml;
+        playCoinSound();
+    }, 1500);
+}
+</script>
+
+
+<script>
+// ============================================
+// POLLING
+// ============================================
+async function loadPoll() {
+    try {
+        var snap = await db.collection('polls').orderBy('createdAt', 'desc').limit(1).get();
+        if (snap.empty) { currentPoll = null; userVoted = false; return; }
+        snap.forEach(function(doc) {
+            currentPoll = { 
+                id: doc.id, 
+                question: doc.data().question || '', 
+                options: doc.data().options || [], 
+                votes: doc.data().votes || [], 
+                voters: doc.data().voters || [] 
+            };
+        });
+        if (currentUser && currentPoll.voters && currentPoll.voters.includes(currentUser.uid)) {
+            userVoted = true;
+        } else {
+            userVoted = false;
+        }
+    } catch (e) { currentPoll = null; userVoted = false; }
+}
+
+function showPolling() {
+    if (!currentPoll) { showNotification('📊 Belum ada polling tersedia', 'error'); return; }
+    var container = document.getElementById('pollContainer');
+    if (!container) return;
+    var totalVotes = 0;
+    if (currentPoll.votes && currentPoll.votes.length > 0) { currentPoll.votes.forEach(function(v) { totalVotes += (v || 0); }); }
+    var html = '<h4 style="margin-bottom:15px;color:#fff;">' + escapeHtml(currentPoll.question) + '</h4>';
+    currentPoll.options.forEach(function(option, index) {
+        var votes = currentPoll.votes && currentPoll.votes[index] ? currentPoll.votes[index] : 0;
+        var percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+        html += '<div onclick="votePoll(' + index + ')" style="padding:12px;background:#111;border:1px solid #333;border-radius:10px;margin:8px 0;cursor:pointer;">';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#fff;">' + escapeHtml(option) + '</span><span style="color:#ffd700;">' + votes + ' (' + percentage + '%)</span></div>';
+        html += '<div style="height:6px;background:#333;border-radius:3px;overflow:hidden;"><div style="height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);border-radius:3px;width:' + percentage + '%;"></div></div></div>';
+    });
+    container.innerHTML = html;
+    document.getElementById('pollPopup').style.display = 'flex';
+    pauseAllVideos(); stopProgressCircle();
+}
+
+async function votePoll(optionIndex) {
+    if (!currentPoll) return;
+    if (userVoted) { showNotification('❌ Anda sudah memberikan suara!', 'error'); return; }
+    if (!currentUser) { showNotification('❌ Login diperlukan!', 'error'); return; }
+    if (!currentPoll.votes || currentPoll.votes.length === 0) currentPoll.votes = currentPoll.options.map(function() { return 0; });
+    if (!currentPoll.voters) currentPoll.voters = [];
+    currentPoll.votes[optionIndex] = (currentPoll.votes[optionIndex] || 0) + 1;
+    currentPoll.voters.push(currentUser.uid);
+    userVoted = true;
+    try {
+        await db.collection('polls').doc(currentPoll.id).update({ votes: currentPoll.votes, voters: currentPoll.voters });
+        showNotification('✅ Vote tercatat! +5 🪙', 'success');
+        await addUserCoins(5);
+        playCoinSound();
+        showPolling();
+    } catch (e) { showNotification('❌ Gagal memberikan suara!', 'error'); }
+}
+
+// ============================================
+// DAILY CHECK-IN
+// ============================================
+function loadCheckInData() {
+    var saved = localStorage.getItem('ndi_checkin');
+    if (saved) { try { checkInData = JSON.parse(saved); } catch (e) { checkInData = { streak: 0, lastCheckIn: '' }; } }
+    else { checkInData = { streak: 0, lastCheckIn: '' }; }
+}
+function saveCheckInData() { localStorage.setItem('ndi_checkin', JSON.stringify(checkInData)); }
+
+function showCheckIn() {
+    var today = getToday();
+    var daysContainer = document.getElementById('checkinDays');
+    var rewardEl = document.getElementById('checkinReward');
+    var btnCheckIn = document.getElementById('checkinBtn2');
+    if (!daysContainer) return;
+    var html = '';
+    for (var i = 0; i < 7; i++) {
+        var date = new Date(); date.setDate(date.getDate() - (6 - i));
+        var dateStr = date.toISOString().split('T')[0];
+        var isChecked = checkInData.lastCheckIn === dateStr;
+        var isToday = dateStr === today;
+        var style = 'display:inline-flex;width:35px;height:35px;border-radius:50%;margin:3px;font-size:12px;font-weight:700;align-items:center;justify-content:center;';
+        if (isChecked) style += 'background:#0c6;color:#fff;';
+        else if (isToday) style += 'background:#ffd700;color:#000;';
+        else style += 'background:#333;color:#666;';
+        html += '<span style="' + style + '">' + (i + 1) + '</span>';
+    }
+    daysContainer.innerHTML = html;
+    if (checkInData.lastCheckIn === today) { if (rewardEl) rewardEl.textContent = '✅ Sudah check-in!'; if (btnCheckIn) btnCheckIn.disabled = true; }
+    else { var reward = CHECKIN_REWARDS[checkInData.streak] || 5; if (rewardEl) rewardEl.textContent = 'Hadiah: +' + reward + ' 🪙'; if (btnCheckIn) btnCheckIn.disabled = false; }
+    document.getElementById('checkinPopup').style.display = 'flex';
+    pauseAllVideos(); stopProgressCircle();
+}
+
+async function doCheckIn() {
+    var today = getToday();
+    if (checkInData.lastCheckIn === today) { showNotification('✅ Sudah check-in!', 'success'); return; }
+    var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    var yesterdayStr = yesterday.toISOString().split('T')[0];
+    if (checkInData.lastCheckIn === yesterdayStr) checkInData.streak = Math.min(checkInData.streak + 1, 7);
+    else checkInData.streak = 1;
+    checkInData.lastCheckIn = today;
+    saveCheckInData();
+    var reward = CHECKIN_REWARDS[checkInData.streak - 1] || 5;
+    await addUserCoins(reward);
+    showNotification('📅 Hari ke-' + checkInData.streak + '! +' + reward + ' 🪙', 'success');
+    playCoinSound();
+    showCheckIn();
+}
+
+// ============================================
+// LEADERBOARD
+// ============================================
+async function loadLeaderboard() {
+    var container = document.getElementById('leaderboardContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">⏳ Memuat...</div>';
+    try {
+        var snap = await db.collection('users').orderBy('coins', 'desc').limit(5).get();
+        var users = [];
+        snap.forEach(function(doc) { users.push({ name: doc.data().name || 'Anonim', coins: doc.data().coins || 0 }); });
+        if (users.length === 0) { container.innerHTML = '<div style="text-align:center;padding:15px;color:#888;">Belum ada data</div>'; return; }
+        var medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        var html = '';
+        users.forEach(function(user, index) {
+            var rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+            html += '<div class="leaderboard-item"><span class="leaderboard-rank ' + rankClass + '">' + medals[index] + '</span><span style="flex:1;">' + escapeHtml(user.name) + '</span><span style="color:#ffd700;">🪙 ' + user.coins.toLocaleString() + '</span></div>';
+        });
+        container.innerHTML = html;
+    } catch (e) { container.innerHTML = '<div style="text-align:center;color:#888;">❌ Gagal</div>'; }
+}
+
+function showLeaderboardPopup() {
+    document.getElementById('leaderboardPopup').style.display = 'flex';
+    loadLeaderboardForPopup();
+    pauseAllVideos(); stopProgressCircle();
+}
+
+async function loadLeaderboardForPopup() {
+    var container = document.getElementById('leaderboardList');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;color:#888;">⏳ Memuat...</div>';
+    try {
+        var snap = await db.collection('users').orderBy('coins', 'desc').limit(5).get();
+        var users = [];
+        snap.forEach(function(doc) { users.push({ name: doc.data().name || 'Anonim', coins: doc.data().coins || 0 }); });
+        if (users.length === 0) { container.innerHTML = '<p style="text-align:center;color:#888;">Belum ada data</p>'; return; }
+        var medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        var html = '';
+        users.forEach(function(user, index) {
+            html += '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#111;border-radius:10px;margin-bottom:6px;"><span style="font-size:22px;">' + medals[index] + '</span><span style="flex:1;">' + escapeHtml(user.name) + '</span><span style="color:#ffd700;">🪙 ' + user.coins.toLocaleString() + '</span></div>';
+        });
+        container.innerHTML = html;
+    } catch (e) { container.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+
+// ============================================
+// SHARE APP
+// ============================================
+function shareApp() {
+    updateQuestProgress('share');
+    var appUrl = 'https://ndimedia.vercel.app';
+    if (navigator.share) {
+        navigator.share({ title: 'NDI Media', text: '🎬 Nonton video + dapat koin! 🪙', url: appUrl })
+            .then(function() { showNotification('🎉 Terima kasih!', 'success'); })
+            .catch(function(error) { if (error.name !== 'AbortError') copyToClipboard(appUrl); });
+    } else { copyToClipboard(appUrl); }
+}
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() { showNotification('✅ Link disalin!', 'success'); }).catch(function() { showCopyDialog(text); });
+    } else { showCopyDialog(text); }
+}
+function showCopyDialog(text) {
+    var dialog = document.createElement('div');
+    dialog.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10003;display:flex;align-items:center;justify-content:center;';
+    dialog.innerHTML = '<div style="background:#1a1a1a;border:2px solid #09f;border-radius:20px;padding:30px;max-width:400px;width:90%;color:#fff;text-align:center;"><div style="font-size:60px;">📤</div><h3>Bagikan NDI Media</h3><div style="background:#111;padding:12px;border-radius:10px;margin:10px 0;word-break:break-all;font-size:12px;">' + text + '</div><button onclick="navigator.clipboard.writeText(\'' + text + '\').then(function(){showNotification(\'✅ Link disalin!\',\'success\')})" style="background:#09f;color:#fff;border:none;padding:12px 20px;border-radius:10px;cursor:pointer;width:100%;">📋 Salin</button><button onclick="this.parentElement.parentElement.remove()" style="background:transparent;color:#fff;border:1px solid #555;padding:10px;border-radius:10px;margin-top:10px;cursor:pointer;width:100%;">Tutup</button></div>';
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', function(e) { if (e.target === dialog) dialog.remove(); });
+}
+
+// ============================================
+// WITHDRAW / PENARIKAN
+// ============================================
+function updateWithdrawEstimate() {
+    var coinAmount = parseInt(document.getElementById('wdCoinAmount').value) || 0;
+    document.getElementById('wdEstimate').textContent = '💰 Akan diterima: Rp ' + Math.floor(coinAmount / 100).toLocaleString();
+}
+function closeWithdrawPopup() {
+    document.getElementById('withdrawPopup').style.display = 'none';
+    playCurrentVideo();
+    if (!isWaitingForLink && !popupActive) startProgressCircle();
+}
+function showWithdrawHistory() {
+    document.getElementById('withdrawFormSection').style.display = 'none';
+    document.getElementById('withdrawHistorySection').style.display = 'block';
+    loadWithdrawHistory();
+}
+function showWithdrawForm() {
+    document.getElementById('withdrawFormSection').style.display = 'block';
+    document.getElementById('withdrawHistorySection').style.display = 'none';
+}
+
+async function loadWithdrawHistory() {
+    var container = document.getElementById('withdrawHistoryList');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">⏳ Memuat riwayat...</div>';
+    if (!currentUser) { container.innerHTML = '<p style="text-align:center;color:#888;padding:20px;">❌ Anda belum login</p>'; return; }
+    try {
+        var snap = await db.collection('withdrawRequests').where('userId', '==', currentUser.uid).get();
+        var requests = [];
+        snap.forEach(function(doc) {
+            requests.push({
+                id: doc.id, coinAmount: doc.data().coinAmount || 0, rpAmount: doc.data().rpAmount || 0,
+                status: doc.data().status || 'pending', name: doc.data().name || '', phone: doc.data().phone || '',
+                createdAt: doc.data().createdAt
+            });
+        });
+        requests.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        if (requests.length === 0) { container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">📤 Belum ada riwayat penarikan</p>'; return; }
+        var html = '';
+        requests.forEach(function(req) {
+            var dateStr = '-';
+            if (req.createdAt && req.createdAt.toDate) {
+                dateStr = req.createdAt.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            }
+            var statusColor = '#fc0', statusText = '⏳ Pending';
+            if (req.status === 'process') { statusColor = '#09f'; statusText = '🔄 Diproses'; }
+            else if (req.status === 'success') { statusColor = '#0c6'; statusText = '✅ Selesai'; }
+            html += '<div style="padding:12px;background:#111;border:1px solid #333;border-radius:10px;margin-bottom:8px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><strong>🪙 ' + req.coinAmount.toLocaleString() + '</strong><span style="color:#0f6;">💰 Rp ' + req.rpAmount.toLocaleString() + '</span></div>';
+            html += '<div style="font-size:11px;color:#888;">📱 ' + escapeHtml(req.phone) + ' | 👤 ' + escapeHtml(req.name) + ' | 📅 ' + dateStr + '</div>';
+            html += '<span style="display:inline-block;margin-top:5px;padding:3px 12px;border-radius:12px;font-size:11px;font-weight:600;color:' + statusColor + ';">' + statusText + '</span></div>';
+        });
+        container.innerHTML = html;
+    } catch (e) { container.innerHTML = '<p style="text-align:center;color:#f44;padding:20px;">❌ Gagal memuat: ' + e.message + '</p>'; }
+}
+
+async function submitWithdrawRequest() {
+    var coinAmount = parseInt(document.getElementById('wdCoinAmount').value);
+    var name = document.getElementById('wdName').value.trim();
+    var phone = document.getElementById('wdPhone').value.trim();
+    if (!coinAmount || coinAmount < 1000) { showNotification('❌ Minimal 1.000 coin!', 'error'); return; }
+    if (!name) { showNotification('❌ Masukkan nama!', 'error'); return; }
+    if (!phone || !phone.startsWith('08') || phone.length < 10) { showNotification('❌ Nomor tidak valid!', 'error'); return; }
+    if (coinAmount > userCoins) { showNotification('❌ Saldo tidak cukup!', 'error'); return; }
+    var rpAmount = Math.floor(coinAmount / 100);
+    if (!confirm('Konfirmasi Penarikan:\n\n🪙 Jumlah: ' + coinAmount.toLocaleString() + ' Coin\n💰 Diterima: Rp ' + rpAmount.toLocaleString() + '\n👤 Nama: ' + name + '\n📱 Nomor: ' + phone + '\n\nLanjutkan?')) return;
+    if (!(await deductUserCoins(coinAmount))) { showNotification('❌ Gagal memproses!', 'error'); return; }
+    try {
+        var docRef = await db.collection('withdrawRequests').add({
+            userId: currentUser.uid, name: name, phone: phone, coinAmount: coinAmount, rpAmount: rpAmount,
+            status: 'pending', adminDeleted: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('✅ Withdraw request saved:', docRef.id);
+        showNotification('✅ Permintaan penarikan berhasil dikirim!', 'success');
+        playCoinSound();
+        document.getElementById('wdCoinAmount').value = '';
+        document.getElementById('wdName').value = '';
+        document.getElementById('wdPhone').value = '';
+        updateWithdrawEstimate();
+        closeWithdrawPopup();
+    } catch (e) { await addUserCoins(coinAmount); showNotification('❌ Gagal mengirim: ' + e.message, 'error'); }
+}
+
+// ============================================
+// ADMIN PANEL FUNCTIONS
+// ============================================
+function openAdminPanel() {
+    document.getElementById('playerView').style.display = 'none';
+    document.getElementById('adminPanel').classList.add('active');
+    document.body.style.overflow = 'auto';
+    pauseAllVideos(); pauseAllLongVideos(); videoPlaying = false;
+    stopProgressCircle(); stopLVProgressCircle();
+    loadVideosAdmin(); loadLongVideosAdmin(); loadMarqueeAdmin();
+    loadClaimLinksAdmin(); loadAdvertisementsAdmin(); loadMidRollAdsAdmin();
+    loadUsersAdmin(); loadWithdrawRequestsAdmin();
+}
+
+function closeAdminPanel() {
+    document.getElementById('playerView').style.display = 'block';
+    document.getElementById('adminPanel').classList.remove('active');
+    document.body.style.overflow = 'hidden';
+    closeUserEdit();
+    if (currentTab === 'reels') { playCurrentVideo(); if (!isWaitingForLink) startProgressCircle(); }
+    else if (currentTab === 'video') { playCurrentLongVideo(); if (!isWaitingForLink) startLVProgressCircle(); }
+}
+
+// --- VIDEO SHORTS ADMIN ---
+async function saveVideo() {
+    var urlInput = document.getElementById('videoUrl');
+    var titleInput = document.getElementById('videoTitle');
+    if (!urlInput || !titleInput) { showNotification('❌ Form tidak ditemukan!', 'error'); return; }
+    var url = urlInput.value.trim();
+    var title = titleInput.value.trim();
+    if (!url || !title) { showNotification('❌ Isi URL/ID dan Judul video!', 'error'); return; }
+    var videoId = extractVideoId(url);
+    if (!videoId) { showNotification('❌ URL/ID YouTube tidak valid!', 'error'); return; }
+    var productTitle = document.getElementById('productTitle') ? document.getElementById('productTitle').value.trim() : '';
+    var productPrice = document.getElementById('productPrice') ? document.getElementById('productPrice').value.trim() : '';
+    var productLink = document.getElementById('productLink') ? document.getElementById('productLink').value.trim() : '';
+    var editId = document.getElementById('editId') ? document.getElementById('editId').value : '';
+    var videoData = {
+        videoId: videoId, title: title, productTitle: productTitle, productPrice: productPrice,
+        productLink: productLink, videoType: 'shorts', isRecommended: true
+    };
+    try {
+        if (isEditing && editId) {
+            videoData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('videos').doc(editId).update(videoData);
+            showNotification('✅ Video diupdate!', 'success');
+            isEditing = false; document.getElementById('editId').value = '';
+        } else {
+            videoData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('videos').add(videoData);
+            showNotification('✅ Video ditambahkan!', 'success');
+        }
+        urlInput.value = ''; titleInput.value = '';
+        if (document.getElementById('productTitle')) document.getElementById('productTitle').value = '';
+        if (document.getElementById('productPrice')) document.getElementById('productPrice').value = '';
+        if (document.getElementById('productLink')) document.getElementById('productLink').value = '';
+        loadVideosAdmin(); loadVideosFromFirebase();
+    } catch (e) { showNotification('❌ Gagal: ' + e.message, 'error'); }
+}
+
+async function loadVideosAdmin() {
+    var ct = document.getElementById('videoListContainer'); if (!ct) return;
+    ct.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var snap = await db.collection('videos').where('videoType', '==', 'shorts').get();
+        var vs = []; snap.forEach(function(d) { vs.push({ id: d.id, title: d.data().title || '', videoId: d.data().videoId || '' }); });
+        vs.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        allVideos = vs;
+        if (vs.length === 0) { ct.innerHTML = '<p style="text-align:center;color:#888;">📹 Belum ada video shorts</p>'; return; }
+        var h = ''; vs.forEach(function(v) { h += '<div class="admin-list-item"><div style="flex:1;"><div style="font-weight:500;">📹 ' + escapeHtml(v.title) + '</div><div style="font-size:10px;color:#888;">ID: ' + v.videoId + '</div></div><button onclick="deleteVideo(\'' + v.id + '\')" class="admin-delete-btn">🗑️</button></div>'; });
+        ct.innerHTML = h;
+    } catch (e) { ct.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+async function deleteVideo(id) { if (!confirm('Hapus?')) return; try { await db.collection('videos').doc(id).delete(); showNotification('🗑️ Dihapus!', 'success'); loadVideosAdmin(); loadVideosFromFirebase(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+
+// --- VIDEO PANJANG ADMIN ---
+async function saveLongVideo() {
+    var urlInput = document.getElementById('longVideoUrl');
+    var titleInput = document.getElementById('longVideoTitle');
+    if (!urlInput || !titleInput) { showNotification('❌ Form tidak ditemukan!', 'error'); return; }
+    var url = urlInput.value.trim();
+    var title = titleInput.value.trim();
+    if (!url || !title) { showNotification('❌ Isi URL/ID dan Judul!', 'error'); return; }
+    var videoId = extractVideoId(url);
+    if (!videoId) { showNotification('❌ URL/ID tidak valid!', 'error'); return; }
+    var duration = document.getElementById('longVideoDuration') ? parseInt(document.getElementById('longVideoDuration').value) || 0 : 0;
+    var category = document.getElementById('longVideoCategory') ? document.getElementById('longVideoCategory').value : 'umum';
+    try {
+        await db.collection('videos').add({ videoId: videoId, title: title, videoType: 'long', duration: duration, category: category, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        showNotification('✅ Video panjang ditambahkan!', 'success');
+        urlInput.value = ''; titleInput.value = ''; if (document.getElementById('longVideoDuration')) document.getElementById('longVideoDuration').value = '';
+        loadLongVideosAdmin(); loadLongVideos();
+    } catch (e) { showNotification('❌ Gagal: ' + e.message, 'error'); }
+}
+async function loadLongVideosAdmin() {
+    var ct = document.getElementById('longVideoListContainer'); if (!ct) return;
+    ct.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var snap = await db.collection('videos').where('videoType', '==', 'long').get();
+        var vs = []; snap.forEach(function(d) { vs.push({ id: d.id, title: d.data().title || '', videoId: d.data().videoId || '', duration: d.data().duration || 0, category: d.data().category || 'umum' }); });
+        vs.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        allLongVideos = vs;
+        if (vs.length === 0) { ct.innerHTML = '<p style="text-align:center;color:#888;">📺 Belum ada video panjang</p>'; return; }
+        var h = ''; vs.forEach(function(v) { h += '<div class="admin-list-item"><div style="flex:1;"><div style="font-weight:500;">📺 ' + escapeHtml(v.title) + '</div><div style="font-size:10px;color:#888;">ID: ' + v.videoId + ' | ⏱️ ' + formatDuration(v.duration) + ' | 🏷️ ' + v.category + '</div></div><button onclick="deleteLongVideo(\'' + v.id + '\')" class="admin-delete-btn">🗑️</button></div>'; });
+        ct.innerHTML = h;
+    } catch (e) { ct.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+async function deleteLongVideo(id) { if (!confirm('Hapus?')) return; try { await db.collection('videos').doc(id).delete(); showNotification('🗑️ Dihapus!', 'success'); loadLongVideosAdmin(); loadLongVideos(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+
+// --- MARQUEE ADMIN ---
+async function saveMarquee() {
+    var t = document.getElementById('marqueeTitle').value.trim();
+    var c = document.getElementById('marqueeContent').value.trim();
+    if (!t || !c) { showNotification('❌ Isi semua!', 'error'); return; }
+    try { await db.collection('marqueeNotifications').add({ title: t, content: c, lines: 2, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); showNotification('✅ Disimpan!', 'success'); document.getElementById('marqueeTitle').value = ''; document.getElementById('marqueeContent').value = ''; loadMarqueeAdmin(); loadMarqueeNotifications(); }
+    catch (e) { showNotification('❌ Gagal!', 'error'); }
+}
+async function loadMarqueeAdmin() {
+    var ct = document.getElementById('marqueeListContainer'); if (!ct) return;
+    ct.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var s = await db.collection('marqueeNotifications').get();
+        var l = []; s.forEach(function(d) { l.push({ id: d.id, title: d.data().title || '', content: d.data().content || '' }); });
+        l.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        if (l.length === 0) { ct.innerHTML = '<p style="text-align:center;color:#888;">📢 Belum ada</p>'; return; }
+        var h = ''; l.forEach(function(m) { h += '<div class="admin-list-item"><div style="flex:1;"><div style="font-weight:500;">📢 ' + escapeHtml(m.title) + '</div><div style="font-size:10px;color:#888;">' + escapeHtml(m.content.substring(0,80)) + '...</div></div><button onclick="deleteMarquee(\'' + m.id + '\')" class="admin-delete-btn">🗑️</button></div>'; });
+        ct.innerHTML = h;
+    } catch (e) { ct.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+async function deleteMarquee(id) { if (!confirm('Hapus?')) return; try { await db.collection('marqueeNotifications').doc(id).delete(); showNotification('🗑️ Dihapus!', 'success'); loadMarqueeAdmin(); loadMarqueeNotifications(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+
+// --- LINK HADIAH ADMIN ---
+async function addClaimLink() {
+    var u = document.getElementById('claimLinkInput').value.trim();
+    var c = parseInt(document.getElementById('claimCoinInput').value) || 50;
+    if (!u || !u.startsWith('http')) { showNotification('❌ URL harus http!', 'error'); return; }
+    try { await db.collection('claimLinks').add({ url: u, coins: c, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); showNotification('✅ Ditambahkan!', 'success'); document.getElementById('claimLinkInput').value = ''; loadClaimLinksAdmin(); loadClaimLinks(); }
+    catch (e) { showNotification('❌ Gagal!', 'error'); }
+}
+async function loadClaimLinksAdmin() {
+    var ct = document.getElementById('claimLinkList'); if (!ct) return;
+    ct.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var s = await db.collection('claimLinks').get();
+        var l = []; s.forEach(function(d) { l.push({ id: d.id, url: d.data().url || '', coins: d.data().coins || 50 }); });
+        l.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        if (l.length === 0) { ct.innerHTML = '<p style="text-align:center;color:#888;">🔗 Belum ada link</p>'; return; }
+        var h = ''; l.forEach(function(link) { h += '<div class="admin-list-item"><div style="flex:1;"><div style="font-size:11px;word-break:break-all;">🔗 ' + escapeHtml(link.url) + '</div><div style="color:#ffd700;">🪙 ' + link.coins + '</div></div><button onclick="deleteClaimLink(\'' + link.id + '\')" class="admin-delete-btn">🗑️</button></div>'; });
+        ct.innerHTML = h;
+    } catch (e) { ct.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+async function deleteClaimLink(id) { if (!confirm('Hapus?')) return; try { await db.collection('claimLinks').doc(id).delete(); showNotification('🗑️ Dihapus!', 'success'); loadClaimLinksAdmin(); loadClaimLinks(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+async function loadClaimLinks() { try { var s = await db.collection('claimLinks').get(); claimLinks = []; s.forEach(function(d) { claimLinks.push({ id: d.id, url: d.data().url || '', coins: d.data().coins || 50 }); }); } catch (e) { claimLinks = []; } }
+
+// --- IKLAN SELA ADMIN ---
+async function saveAdvertisement() {
+    var t = document.getElementById('adTitle').value.trim();
+    if (!t) { showNotification('❌ Judul wajib!', 'error'); return; }
+    try { await db.collection('advertisements').add({ title: t, imageUrl: document.getElementById('adImageUrl').value.trim() || '', linkUrl: document.getElementById('adLinkUrl').value.trim() || '', duration: parseInt(document.getElementById('adDuration').value) || 5, isActive: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); showNotification('✅ Disimpan!', 'success'); document.getElementById('adTitle').value = ''; loadAdvertisementsAdmin(); loadAdvertisements(); }
+    catch (e) { showNotification('❌ Gagal!', 'error'); }
+}
+async function loadAdvertisementsAdmin() {
+    var ct = document.getElementById('adListContainer'); if (!ct) return;
+    ct.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var s = await db.collection('advertisements').get();
+        var ads = []; s.forEach(function(d) { ads.push({ id: d.id, title: d.data().title || '', isActive: d.data().isActive === true }); });
+        ads.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        if (ads.length === 0) { ct.innerHTML = '<p style="text-align:center;color:#888;">📢 Belum ada iklan</p>'; return; }
+        var h = ''; ads.forEach(function(ad) { h += '<div class="admin-list-item"><div style="flex:1;"><span style="margin-right:8px;">' + (ad.isActive?'🟢':'🔴') + '</span>' + escapeHtml(ad.title) + '</div><div style="display:flex;gap:5px;"><button onclick="toggleAdActive(\'' + ad.id + '\',' + ad.isActive + ')" class="admin-toggle-btn" style="background:' + (ad.isActive?'#f00':'#0c6') + '">' + (ad.isActive?'🛑':'▶️') + '</button><button onclick="deleteAd(\'' + ad.id + '\')" class="admin-delete-btn">🗑️</button></div></div>'; });
+        ct.innerHTML = h;
+    } catch (e) { ct.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+async function toggleAdActive(id, cs) { try { await db.collection('advertisements').doc(id).update({ isActive: !cs }); showNotification(cs?'🛑 Nonaktif':'▶️ Aktif', 'success'); loadAdvertisementsAdmin(); loadAdvertisements(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+async function deleteAd(id) { if (!confirm('Hapus?')) return; try { await db.collection('advertisements').doc(id).delete(); showNotification('🗑️ Dihapus!', 'success'); loadAdvertisementsAdmin(); loadAdvertisements(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+
+// --- MID-ROLL ADMIN ---
+async function saveMidRollAd() {
+    var titleInput = document.getElementById('midrollAdTitle');
+    if (!titleInput) { showNotification('❌ Form tidak ditemukan!', 'error'); return; }
+    var t = titleInput.value.trim();
+    if (!t) { showNotification('❌ Judul wajib!', 'error'); return; }
+    try { await db.collection('midRollAds').add({ title: t, duration: parseInt((document.getElementById('midrollAdDuration')||{}).value) || 5, imageUrl: (document.getElementById('midrollAdImage')||{}).value || '', linkUrl: (document.getElementById('midrollAdLink')||{}).value || '', placement: (document.getElementById('midrollAdPlacement')||{}).value || 'random', probability: parseInt((document.getElementById('midrollAdProbability')||{}).value) || 50, skippable: ((document.getElementById('midrollAdSkippable')||{}).value || 'true') === 'true', isActive: true, videoType: 'long', createdAt: firebase.firestore.FieldValue.serverTimestamp() }); showNotification('✅ Mid-roll disimpan!', 'success'); titleInput.value = ''; loadMidRollAdsAdmin(); loadActiveMidRollAds(); }
+    catch (e) { showNotification('❌ Gagal: ' + e.message, 'error'); }
+}
+async function loadMidRollAdsAdmin() {
+    var ct = document.getElementById('midrollAdListContainer'); if (!ct) return;
+    ct.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var s = await db.collection('midRollAds').where('videoType','==','long').get();
+        var ads = []; s.forEach(function(d) { ads.push({ id: d.id, title: d.data().title || '', isActive: d.data().isActive === true }); });
+        ads.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        if (ads.length === 0) { ct.innerHTML = '<p style="text-align:center;color:#888;">🎬 Belum ada mid-roll</p>'; return; }
+        var h = ''; ads.forEach(function(ad) { h += '<div class="admin-list-item"><div style="flex:1;"><span style="margin-right:8px;">' + (ad.isActive?'🟢':'🔴') + '</span>🎬 ' + escapeHtml(ad.title) + '</div><div style="display:flex;gap:5px;"><button onclick="toggleMidRollActive(\'' + ad.id + '\',' + ad.isActive + ')" class="admin-toggle-btn" style="background:' + (ad.isActive?'#f00':'#0c6') + '">' + (ad.isActive?'🛑':'▶️') + '</button><button onclick="deleteMidRollAd(\'' + ad.id + '\')" class="admin-delete-btn">🗑️</button></div></div>'; });
+        ct.innerHTML = h;
+    } catch (e) { ct.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+async function toggleMidRollActive(id, cs) { try { await db.collection('midRollAds').doc(id).update({ isActive: !cs }); showNotification(cs?'🛑 Nonaktif':'▶️ Aktif', 'success'); loadMidRollAdsAdmin(); loadActiveMidRollAds(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+async function deleteMidRollAd(id) { if (!confirm('Hapus?')) return; try { await db.collection('midRollAds').doc(id).delete(); showNotification('🗑️ Dihapus!', 'success'); loadMidRollAdsAdmin(); loadActiveMidRollAds(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+
+// --- DATA USER ADMIN ---
+async function loadUsersAdmin() {
+    var container = document.getElementById('userListContainer'); if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var snap = await db.collection('users').get();
+        allUsersData = [];
+        snap.forEach(function(doc) { allUsersData.push({ id: doc.id, name: doc.data().name || 'Tanpa Nama', coins: doc.data().coins || 0, uid: doc.data().uid || doc.id }); });
+        allUsersData.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        if (allUsersData.length === 0) { container.innerHTML = '<p style="text-align:center;color:#888;">👥 Belum ada user</p>'; return; }
+        renderUserList(allUsersData);
+    } catch (e) { container.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+function renderUserList(users) {
+    var container = document.getElementById('userListContainer'); if (!container) return;
+    if (users.length === 0) { container.innerHTML = '<p style="text-align:center;color:#888;">Tidak ada user</p>'; return; }
+    var h = '';
+    users.forEach(function(u) {
+        h += '<div class="admin-list-item" style="cursor:pointer;" onclick="openUserEdit(\'' + u.id + '\',\'' + escapeHtml(u.name).replace(/'/g,"\\'") + '\',' + u.coins + ')">';
+        h += '<div style="flex:1;"><div style="font-weight:600;">👤 ' + escapeHtml(u.name) + '</div><div style="font-size:10px;color:#888;font-family:monospace;">UID: ' + (u.uid||u.id).substring(0,20) + '...</div></div>';
+        h += '<div style="text-align:right;"><div style="color:#ffd700;font-weight:700;">🪙 ' + u.coins.toLocaleString() + '</div>';
+        h += '<div style="display:flex;gap:5px;margin-top:5px;"><button onclick="event.stopPropagation();openUserEdit(\'' + u.id + '\',\'' + escapeHtml(u.name).replace(/'/g,"\\'") + '\',' + u.coins + ')" style="background:#09f;color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;">✏️</button><button onclick="event.stopPropagation();deleteUser(\'' + u.id + '\',\'' + escapeHtml(u.name).replace(/'/g,"\\'") + '\')" class="admin-delete-btn" style="padding:4px 10px;font-size:11px;">🗑️</button></div></div></div>';
+    });
+    container.innerHTML = h;
+}
+function filterUserList() {
+    var kw = document.getElementById('userSearchInput').value.toLowerCase().trim();
+    if (kw === '') { renderUserList(allUsersData); return; }
+    var filtered = allUsersData.filter(function(u) { return u.name.toLowerCase().includes(kw) || (u.uid||u.id).toLowerCase().includes(kw); });
+    renderUserList(filtered);
+}
+function openUserEdit(uid, name, coins) {
+    document.getElementById('editUserUid').value = uid;
+    document.getElementById('editUserName').value = name;
+    document.getElementById('editUserCoins').value = coins;
+    document.getElementById('editUserDisplayName').textContent = name;
+    document.getElementById('userEditPanel').style.display = 'block';
+}
+function closeUserEdit() { document.getElementById('userEditPanel').style.display = 'none'; }
+async function saveUserEdit() {
+    var uid = document.getElementById('editUserUid').value;
+    var name = document.getElementById('editUserName').value.trim();
+    var coins = parseInt(document.getElementById('editUserCoins').value) || 0;
+    if (!uid || !name) return;
+    try { await db.collection('users').doc(uid).update({ name: name, coins: coins, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }); showNotification('✅ User diupdate!', 'success'); closeUserEdit(); loadUsersAdmin(); if (currentUser && uid === currentUser.uid) { userCoins = coins; userName = name; updateBalanceDisplay(); updateHeaderName(); } }
+    catch (e) { showNotification('❌ Gagal!', 'error'); }
+}
+async function deleteUser(uid, name) { if (!confirm('Hapus user: ' + name + '?')) return; try { await db.collection('users').doc(uid).delete(); showNotification('🗑️ Dihapus!', 'success'); loadUsersAdmin(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+async function deleteAllUsers() { if (!confirm('HAPUS SEMUA USER?')) return; var confirmText = prompt('Ketik "YA" untuk menghapus semua user:'); if (confirmText !== 'YA') { showNotification('❌ Dibatalkan', 'error'); return; } try { var snap = await db.collection('users').get(); var batch = db.batch(); snap.forEach(function(doc) { batch.delete(doc.ref); }); await batch.commit(); showNotification('🗑️ Semua user dihapus!', 'success'); allUsersData = []; loadUsersAdmin(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+
+// --- PERMINTAAN PENARIKAN ADMIN ---
+async function loadWithdrawRequestsAdmin() {
+    var container = document.getElementById('withdrawRequestList'); if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Memuat...</div>';
+    try {
+        var snap = await db.collection('withdrawRequests').get();
+        var requests = [];
+        snap.forEach(function(doc) { requests.push({ id: doc.id, userId: doc.data().userId || '', coinAmount: doc.data().coinAmount || 0, rpAmount: doc.data().rpAmount || 0, status: doc.data().status || 'pending', name: doc.data().name || '', phone: doc.data().phone || '', createdAt: doc.data().createdAt }); });
+        requests.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        var pendingCount = requests.filter(function(r) { return r.status === 'pending'; }).length;
+        var countEl = document.getElementById('pendingWithdrawCount'); if (countEl) countEl.textContent = pendingCount + ' Pending';
+        if (requests.length === 0) { container.innerHTML = '<p style="text-align:center;color:#888;">📤 Belum ada permintaan</p>'; return; }
+        var h = '';
+        requests.forEach(function(req) {
+            var dateStr = '-'; if (req.createdAt && req.createdAt.toDate) { dateStr = req.createdAt.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+            var statusColor = '#fc0', statusBg = 'rgba(255,200,0,0.15)'; if (req.status === 'process') { statusColor = '#09f'; statusBg = 'rgba(0,150,255,0.15)'; } else if (req.status === 'success') { statusColor = '#0c6'; statusBg = 'rgba(0,200,100,0.15)'; }
+            h += '<div style="padding:12px;background:#111;border:1px solid #333;border-radius:10px;margin-bottom:8px;">';
+            h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="font-weight:600;">👤 ' + escapeHtml(req.name) + '</div><span style="padding:4px 12px;border-radius:15px;font-size:11px;font-weight:600;color:' + statusColor + ';background:' + statusBg + ';">' + req.status.toUpperCase() + '</span></div>';
+            h += '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>🪙 ' + req.coinAmount.toLocaleString() + '</span><span style="color:#0f6;">💰 Rp ' + req.rpAmount.toLocaleString() + '</span></div>';
+            h += '<div style="font-size:11px;color:#888;margin-bottom:5px;">📱 ' + escapeHtml(req.phone) + ' | 📅 ' + dateStr + '</div>';
+            h += '<div style="font-size:10px;color:#666;margin-bottom:8px;">UID: ' + (req.userId||'-').substring(0,20) + '...</div>';
+            h += '<div style="display:flex;gap:5px;">';
+            if (req.status === 'pending') { h += '<button onclick="updateWithdrawStatus(\'' + req.id + '\',\'process\')" style="background:#09f;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;">🔄 Proses</button><button onclick="updateWithdrawStatus(\'' + req.id + '\',\'success\')" style="background:#0c6;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;">✅ Selesai</button>'; }
+            else if (req.status === 'process') { h += '<button onclick="updateWithdrawStatus(\'' + req.id + '\',\'success\')" style="background:#0c6;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;">✅ Selesai</button>'; }
+            h += '<button onclick="deleteWithdrawRequest(\'' + req.id + '\')" class="admin-delete-btn" style="padding:6px 14px;font-size:12px;">🗑️</button></div></div>';
+        });
+        container.innerHTML = h;
+    } catch (e) { container.innerHTML = '<p style="text-align:center;color:#888;">❌ Gagal</p>'; }
+}
+async function updateWithdrawStatus(requestId, newStatus) { try { await db.collection('withdrawRequests').doc(requestId).update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }); showNotification('✅ Status diupdate!', 'success'); loadWithdrawRequestsAdmin(); loadWithdrawSuccessForMarquee(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+async function deleteWithdrawRequest(requestId) { if (!confirm('HAPUS permanen?')) return; try { await db.collection('withdrawRequests').doc(requestId).delete(); showNotification('🗑️ Dihapus!', 'success'); loadWithdrawRequestsAdmin(); } catch (e) { showNotification('❌ Gagal!', 'error'); } }
+
+// ============================================
+// AUTH & INITIALIZATION
+// ============================================
+async function loginAnonymously() {
+    try { var result = await auth.signInAnonymously(); currentUser = result.user; console.log('✅ Login success:', currentUser.uid); return currentUser; }
+    catch (e) { console.log('Login error, retrying...'); return new Promise(function(resolve) { setTimeout(function() { resolve(loginAnonymously()); }, 3000); }); }
+}
+async function loadUserData() {
+    if (!currentUser) return;
+    try {
+        var doc = await db.collection('users').doc(currentUser.uid).get();
+        if (doc.exists) { userCoins = doc.data().coins || 0; userName = doc.data().name || ''; if (doc.data().antiAdsActive && doc.data().antiAdsEndTime && doc.data().antiAdsEndTime > Date.now()) { antiAdsActive = true; antiAdsEndTime = doc.data().antiAdsEndTime; startAntiAdsTimer(); } }
+        else { await db.collection('users').doc(currentUser.uid).set({ uid: currentUser.uid, name: '', coins: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); }
+        updateBalanceDisplay(); updateHeaderName(); updateWithdrawUserCard(); updateAntiAdsUI();
+        if (!userName) setTimeout(function() { showNameInputPopup(); }, 1500);
+    } catch (e) { userCoins = parseInt(localStorage.getItem('ndi_coins') || '0'); userName = localStorage.getItem('ndi_username') || ''; updateBalanceDisplay(); updateHeaderName(); }
+}
+function getSmartVideoOrder(rawVideos) {
+    var rec = rawVideos.filter(function(v) { return v.isRecommended === true; });
+    var non = rawVideos.filter(function(v) { return v.isRecommended !== true; });
+    var sRec = shuffleArray(rec.slice()); var sNon = shuffleArray(non.slice());
+    var result = []; var recCount = Math.floor(rawVideos.length * 0.7);
+    for (var i = 0; i < Math.min(recCount, sRec.length); i++) { result.push(sRec[i]); }
+    var rem = sRec.slice(Math.min(recCount, sRec.length));
+    return result.concat(shuffleArray(rem.concat(sNon)));
+}
+async function loadVideosFromFirebase() {
+    try {
+        document.getElementById('loadingStatus').textContent = 'Memuat video...';
+        var snap = await db.collection('videos').where('videoType', '==', 'shorts').get();
+        var raw = [];
+        snap.forEach(function(d) { raw.push({ id: d.id, videoId: d.data().videoId || '', title: d.data().title || '', isRecommended: d.data().isRecommended === true, productTitle: d.data().productTitle || '', productPrice: d.data().productPrice || '', productLink: d.data().productLink || '' }); });
+        raw.sort(function(a, b) { return b.id.localeCompare(a.id); });
+        if (raw.length === 0) { document.getElementById('loadingScreen').style.display = 'none'; document.getElementById('shortsContainer').innerHTML = '<div class="short-item"><div class="empty-video-message"><h2>📹 Belum Ada Video</h2><p>Admin belum menambahkan video pendek.</p></div></div>'; videos = []; totalVideos = 0; }
+        else { videos = getSmartVideoOrder(raw); totalVideos = videos.length; renderVideos(); }
+        await loadClaimLinks(); await loadMarqueeNotifications(); await loadWithdrawSuccessForMarquee();
+        await loadAdvertisements(); await loadActiveMidRollAds();
+        initProgressCircle(); initLVProgressCircle();
+        if (currentTab === 'reels') startProgressCircle();
+        document.getElementById('loadingScreen').style.display = 'none';
+        console.log('✅ Videos loaded:', totalVideos);
+    } catch (e) { console.error('❌ loadVideosFromFirebase error:', e); document.getElementById('loadingScreen').style.display = 'none'; }
+}
+
+// ============================================
+// EVENT LISTENERS & FINAL INIT
+// ============================================
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 NDI Media v7.0 Starting...');
+    loadMarqueeVisibility();
+    await loadDailyQuests(); updateQuestProgress('login');
+    loadCheckInData(); await loadPoll();
+    var user = await loginAnonymously();
+    if (user) { await loadUserData(); await loadVideosFromFirebase(); }
+    initProgressCircle(); initLVProgressCircle();
+    console.log('✅ NDI Media - All Systems Ready');
+});
+
+// Footer hold admin
+var footerHoldTimer = null, footerHoldStartTime = 0, isFooterHolding = false;
+document.getElementById('footerText').addEventListener('mousedown', function(e) {
+    if (isFooterHolding) return; isFooterHolding = true; footerHoldStartTime = Date.now();
+    var pb = document.getElementById('footerProgress'); this.classList.add('hold-active'); pb.classList.add('active'); pb.style.width = '0%';
+    footerHoldTimer = setInterval(function() { var p = Math.min(((Date.now() - footerHoldStartTime) / 5000) * 100, 100); pb.style.width = p + '%'; if (p >= 100) { clearInterval(footerHoldTimer); resetFooterHoldUI(); setTimeout(function() { var pin = prompt('🔐 PIN Admin:'); if (pin === '1234') { openAdminPanel(); } }, 100); } }, 50);
+    var cleanup = function() { clearInterval(footerHoldTimer); resetFooterHoldUI(); isFooterHolding = false; };
+    this.addEventListener('mouseup', cleanup, { once: true }); this.addEventListener('mouseleave', cleanup, { once: true });
+});
+document.getElementById('footerText').addEventListener('touchstart', function(e) {
+    e.preventDefault(); if (isFooterHolding) return; isFooterHolding = true; footerHoldStartTime = Date.now();
+    var pb = document.getElementById('footerProgress'); this.classList.add('hold-active'); pb.classList.add('active'); pb.style.width = '0%';
+    footerHoldTimer = setInterval(function() { var p = Math.min(((Date.now() - footerHoldStartTime) / 5000) * 100, 100); pb.style.width = p + '%'; if (p >= 100) { clearInterval(footerHoldTimer); resetFooterHoldUI(); setTimeout(function() { var pin = prompt('🔐 PIN Admin:'); if (pin === '1234') { openAdminPanel(); } }, 100); } }, 50);
+    var cleanup = function() { clearInterval(footerHoldTimer); resetFooterHoldUI(); isFooterHolding = false; };
+    this.addEventListener('touchend', cleanup, { once: true }); this.addEventListener('touchcancel', cleanup, { once: true });
+});
+function resetFooterHoldUI() { var ft = document.getElementById('footerText'); var pb = document.getElementById('footerProgress'); if (ft) ft.classList.remove('hold-active'); if (pb) { pb.classList.remove('active'); pb.style.width = '0%'; } }
+
+document.getElementById('openWithdrawBtn').addEventListener('click', function() { document.getElementById('withdrawPopup').style.display = 'flex'; pauseAllVideos(); stopProgressCircle(); updateWithdrawUserCard(); updateWithdrawEstimate(); loadLeaderboard(); });
+document.getElementById('userNameInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') saveUserName(); });
+['dailyQuestPopup','badgePopup','spinPopup','lootboxPopup','pollPopup','checkinPopup','leaderboardPopup'].forEach(function(id) { var el = document.getElementById(id); if (el) el.addEventListener('click', function(e) { if (e.target === this) { this.style.display = 'none'; playCurrentVideo(); if (!isWaitingForLink && !popupActive && !isShowingAd) startProgressCircle(); } }); });
+document.addEventListener('keydown', function(e) { if (document.getElementById('adminPanel').classList.contains('active')) { if (e.key === 'Escape') closeAdminPanel(); return; } if (e.key === '1') switchTab('reels'); if (e.key === '2') switchTab('video'); if (e.key === '3') switchTab('hadiah'); if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleGlobalMute(); } });
+document.addEventListener('contextmenu', function(e) { if (e.target.closest('.long-video-player-container') || e.target.closest('.video-fullscreen')) { e.preventDefault(); return false; } });
+document.addEventListener('visibilitychange', function() { if (document.hidden) { pauseAllVideos(); pauseAllLongVideos(); stopProgressCircle(); stopLVProgressCircle(); } else { if (currentTab === 'reels') { playCurrentVideo(); if (!isWaitingForLink) startProgressCircle(); } else if (currentTab === 'video') { playCurrentLongVideo(); if (!isWaitingForLink) startLVProgressCircle(); } } });
+if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('/sw.js').catch(function(e) {}); }); }
+
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); deferredPrompt = e; setTimeout(function() { var b = document.getElementById('installBtn'); if (b && deferredPrompt) b.style.display = 'block'; }, 10000); });
+function installPWA() { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(function(r) { if (r.outcome === 'accepted') showNotification('✅ Terinstall!', 'success'); deferredPrompt = null; document.getElementById('installBtn').style.display = 'none'; }); } }
+
+setInterval(function() { loadMarqueeNotifications(); loadWithdrawSuccessForMarquee(); }, 300000);
+
+function toggleGlobalMute() {
+    var allP = Object.assign({}, players, longVideoPlayers);
+    var unmuted = false;
+    for (var k in allP) { try { if (!allP[k].isMuted || !allP[k].isMuted()) { unmuted = true; break; } } catch(e) {} }
+    for (var k in allP) { try { if (unmuted) allP[k].mute(); else { allP[k].unMute(); allP[k].setVolume(100); } } catch(e) {} }
+    showNotification(unmuted ? '🔇 Semua video dimute' : '🔊 Semua video bersuara', unmuted ? 'warning' : 'success');
+}
+
+console.log('╔══════════════════════════════════════╗');
+console.log('║     NDI MEDIA v7.0 - TAHAP 7        ║');
+console.log('║     FINAL - ALL SYSTEMS READY       ║');
+console.log('╚══════════════════════════════════════╝');
+</script>
+
+</body>
+</html>
